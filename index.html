@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoho Report Map Viewer</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script defer src="js/mockApi.js"></script>
+    <script defer src="js/script.js"></script>
+    <script defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAkNYoqjjXZtVhqDE2KnviUlaPIhX7nEUc&callback=initMap&libraries=marker,geometry"></script>
+    </head>
+<body>
+    <div id="container">
+        <aside id="filters">
+            <h2>Filters</h2>
+
+            <div class="filter-group">
+                <h3>Projects</h3>
+                <div class="filter-group-content">
+                    <label><input type="radio" name="project_status" value="" checked> All Projects</label><br>
+                    <label><input type="radio" name="project_status" value="Completed"> Completed</label><br>
+                    <label><input type="radio" name="project_status" value="Archived"> Archived</label><br>
+                    <label><input type="radio" name="project_status" value="Cancelled"> Cancelled</label><br>
+                    <label><input type="radio" name="project_status" value="Suspended"> Suspended</label><br>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <h3>Billing Locations</h3>
+                <div class="filter-group-content">
+                    <select id="billing-location-filter">
+                        <option value="">All Billing Locations</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <h3>Resource Location</h3>
+                <div class="filter-group-content">
+                    <select id="resource-location-main-filter">
+                        <option value="">All Resource Locations</option>
+                    </select>
+
+                    <h4>Roles (Sub-filter of Resource Location)</h4>
+                    <div id="roles-sub-filters">
+                        <label><input type="radio" name="role" value="" checked> All Roles</label><br>
+                    </div>
+
+                    <h4>Status (Sub-filter of Resource Location)</h4>
+                    <div id="resource-status-sub-filters">
+                        <label><input type="radio" name="resource_status" value="" checked> Any Status</label><br>
+                        <label><input type="radio" name="resource_status" value="Active"> Active</label><br>
+                        <label><input type="radio" name="resource_status" value="Inactive"> Inactive</label><br>
+                    </div>
+                </div>
+            </div>
+
+            <button id="apply-filters-btn">Apply Filters</button>
+            <button id="reset-filters-btn">Reset Filters</button>
+
+            <div class="filter-group">
+                <h3>Measure Distance</h3>
+                <div class="filter-group-content">
+                    <button id="calculate-two-point-distance-btn">Start: Marker to Marker</button>
+                    <div id="two-point-distance-instructions" style="margin-top: 10px; font-style: italic;"></div>
+                </div>
+            </div>
+
+        </aside>
+
+        <main id="map-container">
+            <p>Map loading... Please ensure Google Maps API is correctly configured if it doesn't appear.</p>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Your Company</p>
+    </footer>
+
+    </body>
+</html>
