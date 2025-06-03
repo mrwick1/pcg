@@ -14,20 +14,25 @@
         <aside id="filters">
             <h2>Filters</h2>
 
+            <!-- Filter groups directly stacked -->
             <div class="filter-group">
                 <h3>Projects</h3>
-                <div class="filter-group-content">
-                    <label><input type="radio" name="project_status" value="" checked> All Projects</label><br>
-                    <label><input type="radio" name="project_status" value="Completed"> Completed</label><br>
-                    <label><input type="radio" name="project_status" value="Archived"> Archived</label><br>
-                    <label><input type="radio" name="project_status" value="Cancelled"> Cancelled</label><br>
-                    <label><input type="radio" name="project_status" value="Suspended"> Suspended</label><br>
+                <div class="filter-group-content"> <!-- Content visible by default -->
+                    <label for="project-status-filter">Project Status:</label>
+                    <select id="project-status-filter">
+                        <option value="" selected>All Projects</option>
+                        <option value="Live">Live</option>
+                        <option value="Archived">Archived</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Suspended">Suspended</option>
+                    </select>
                 </div>
             </div>
 
             <div class="filter-group">
                 <h3>Billing Locations</h3>
                 <div class="filter-group-content">
+                    <label for="billing-location-filter">Billing Location:</label>
                     <select id="billing-location-filter">
                         <option value="">All Billing Locations</option>
                     </select>
@@ -37,33 +42,40 @@
             <div class="filter-group">
                 <h3>Resource Location</h3>
                 <div class="filter-group-content">
+                    <label for="resource-location-main-filter">Main Resource Location:</label>
                     <select id="resource-location-main-filter">
                         <option value="">All Resource Locations</option>
                     </select>
 
-                    <h4>Roles (Sub-filter of Resource Location)</h4>
-                    <div id="roles-sub-filters">
-                        <label><input type="radio" name="role" value="" checked> All Roles</label><br>
-                    </div>
+                    <h4>Roles</h4>
+                    <label for="role-filter" class="sr-only">Role:</label>
+                    <select id="role-filter">
+                        <option value="" selected>All Roles</option>
+                        <!-- Roles will be populated by JS -->
+                    </select>
 
-                    <h4>Status (Sub-filter of Resource Location)</h4>
-                    <div id="resource-status-sub-filters">
-                        <label><input type="radio" name="resource_status" value="" checked> Any Status</label><br>
-                        <label><input type="radio" name="resource_status" value="Active"> Active</label><br>
-                        <label><input type="radio" name="resource_status" value="Inactive"> Inactive</label><br>
-                    </div>
+                    <h4>Status</h4>
+                    <label for="resource-status-filter" class="sr-only">Status:</label>
+                    <select id="resource-status-filter">
+                        <option value="" selected>Any Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="On Bench">On Bench</option> 
+                    </select>
                 </div>
             </div>
-
-            <button id="apply-filters-btn">Apply Filters</button>
-            <button id="reset-filters-btn">Reset Filters</button>
 
             <div class="filter-group">
                 <h3>Measure Distance</h3>
                 <div class="filter-group-content">
                     <button id="calculate-two-point-distance-btn">Start: Marker to Marker</button>
-                    <div id="two-point-distance-instructions" style="margin-top: 10px; font-style: italic;"></div>
+                    <div id="two-point-distance-instructions"></div>
                 </div>
+            </div>
+            
+            <div class="filter-actions">
+                 <button id="apply-filters-btn">Apply Filters</button>
+                 <button id="reset-filters-btn">Reset Filters</button>
             </div>
 
         </aside>
@@ -73,9 +85,12 @@
         </main>
     </div>
 
+    <!-- Footer removed or commented out -->
+    <!-- 
     <footer>
         <p>&copy; 2025 Your Company</p>
     </footer>
+    -->
 
     </body>
 </html>

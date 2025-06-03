@@ -1,212 +1,235 @@
 :root {
     --primary-color: #007bff;
+    --primary-color-light: #54a6ff;
+    --primary-color-dark: #0056b3;
     --secondary-color: #6c757d;
+    --panel-bg-color: #f8f9fa;
+    --body-bg-color: #e9ecef;
+    --text-color: #343a40;
+    --text-color-light: #495057;
+    --text-color-muted: #6c757d;
+    --border-color: #ced4da;
+    --border-color-light: #dee2e6;
+    --input-bg-color: #fff;
+    --button-bg-color: var(--primary-color);
+    --button-text-color: #fff;
+    --button-hover-bg-color: var(--primary-color-dark);
+    --button-secondary-bg-color: var(--secondary-color);
+    --button-secondary-hover-bg-color: #5a6268;
+    --border-radius: 0.3rem;
+    --border-radius-small: 0.2rem;
+    --box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    --box-shadow-lg: 0 0.5rem 1rem rgba(0,0,0,0.15);
+    --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --light-gray: #f8f9fa;
     --medium-gray: #e9ecef;
     --dark-gray: #343a40;
-    --border-color: #ced4da;
-    --text-color: #212529;
-    --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 html, body {
     height: 100%;
     margin: 0;
-    padding: 0;
     font-family: var(--font-family-sans-serif);
     color: var(--text-color);
-    background-color: var(--light-gray); /* Light background for the whole page */
-    overflow: hidden;
+    background-color: var(--body-bg-color); 
+    font-size: 16px;
 }
 
 #container {
     display: flex;
-    height: 100%;
+    height: 100vh;
+    background-color: var(--body-bg-color);
 }
 
 #filters {
-    width: 320px; /* Increased width */
-    background-color: #fff; /* White background for filter panel */
-    border-right: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    padding: 20px;
-    overflow-y: auto;
+    background-color: var(--panel-bg-color);
+    padding: 20px 20px 60px 20px;
+    width: 300px;
+    min-width: 280px;
     display: flex;
-    flex-direction: column; /* Align filter groups and buttons vertically */
-}
-
-#filters h2 {
-    font-size: 1.5rem;
-    color: var(--dark-gray);
-    margin-top: 0;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.filter-group {
-    margin-bottom: 15px;
-}
-
-.filter-group h3 {
-    font-size: 1.1rem;
-    color: var(--dark-gray);
-    background-color: var(--light-gray);
-    padding: 10px 15px;
-    margin: 0 0 10px 0;
-    border-radius: 4px;
-    cursor: pointer;
-    position: relative;
-    transition: background-color 0.2s ease-in-out;
-}
-
-.filter-group h3::after {
-    content: '\25BC'; /* Down arrow */
-    font-size: 0.8em;
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    transition: transform 0.2s ease-in-out;
-}
-
-.filter-group h3.active::after {
-    transform: translateY(-50%) rotate(180deg); /* Up arrow */
-}
-
-.filter-group h3:hover {
-    background-color: var(--medium-gray);
-}
-
-.filter-group-content {
-    padding-left: 15px;
-    padding-right: 5px; /* Space for scrollbar if content overflows */
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-in-out;
-}
-
-.filter-group-content.open {
-    max-height: 1000px; /* Adjust as needed, should be larger than any possible content */
-    /* Consider adding padding-bottom if needed when open */
-}
-
-.filter-group label {
-    display: block; /* Make labels take full width for better click area */
-    margin-bottom: 8px;
-    font-size: 0.95rem;
-    color: var(--secondary-color);
-}
-
-.filter-group input[type="radio"] {
-    margin-right: 8px;
-    accent-color: var(--primary-color); /* Modern way to color radio/checkbox */
-}
-
-.filter-group select {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background-color: #fff;
-    font-size: 0.95rem;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
     color: var(--text-color);
-    margin-bottom: 10px;
+    overflow-y: auto;
     box-sizing: border-box;
 }
 
-.filter-group select:focus {
+#filters h2 {
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 1.5em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.filter-group {
+    margin-bottom: 20px;
+}
+
+.filter-group > h3 {
+    font-size: 1.15em;
+    color: var(--primary-color-dark);
+    background-color: var(--medium-gray);
+    padding: 10px 15px;
+    margin: 0 0 10px 0;
+    border-radius: var(--border-radius-small);
+    transition: background-color 0.2s ease-in-out;
+    border-bottom: 1px solid var(--border-color-light);
+}
+
+.filter-group-content {
+    padding: 5px 10px;
+}
+
+.filter-group-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: var(--text-color-light);
+    font-weight: 500;
+}
+
+.filter-group-content h4 {
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: var(--primary-color);
+    border-bottom: 1px dashed var(--border-color-light);
+    padding-bottom: 3px;
+    font-weight: 600;
+}
+
+.filter-group-content select {
+    width: 100%;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius-small);
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+    box-sizing: border-box;
+    font-size: 0.9em;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236c757d'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px;
+}
+
+.filter-group-content select:focus {
     border-color: var(--primary-color);
     outline: none;
     box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
 
-.filter-group h4 {
-    font-size: 0.9rem;
-    color: var(--dark-gray);
-    margin-top: 15px;
-    margin-bottom: 5px;
+.filter-actions {
+    margin-top: auto;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 10px;
 }
 
-/* Buttons */
-#filters button {
-    display: block; /* Make buttons take full width in their container */
-    width: 100%;
+.filter-actions button {
+    flex-grow: 1;
     padding: 10px 15px;
-    font-size: 0.95rem;
+    font-size: 0.95em;
     font-weight: 500;
-    color: #fff;
-    background-color: var(--primary-color);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
     text-align: center;
-    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    margin-bottom: 10px; /* Space between buttons */
-}
-
-#filters button:hover {
-    background-color: #0056b3; /* Darker shade of primary */
+    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease;
     box-shadow: var(--box-shadow);
+    color: var(--button-text-color);
 }
 
-#filters button:active {
-    background-color: #004085; /* Even darker */
+.filter-actions button#apply-filters-btn {
+    background-color: var(--button-bg-color);
+}
+.filter-actions button#apply-filters-btn:hover {
+    background-color: var(--button-hover-bg-color);
+    box-shadow: var(--box-shadow-lg);
 }
 
-#filters #reset-filters-btn {
-    background-color: var(--secondary-color);
+.filter-actions button#reset-filters-btn {
+    background-color: var(--button-secondary-bg-color);
+}
+.filter-actions button#reset-filters-btn:hover {
+    background-color: var(--button-secondary-hover-bg-color);
+    box-shadow: var(--box-shadow-lg);
 }
 
-#filters #reset-filters-btn:hover {
-    background-color: #545b62; /* Darker shade of secondary */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
 }
 
-#filters #reset-filters-btn:active {
-    background-color: #495057; /* Even darker */
-}
-
-/* Styling for the instruction div in Measure Distance */
 #two-point-distance-instructions {
-    font-size: 0.9rem;
-    color: var(--text-color);
-    padding: 8px;
-    background-color: var(--light-gray);
-    border-radius: 4px;
-    min-height: 30px; /* Ensure it has some height even when empty */
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--input-bg-color);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius-small);
+    font-size: 0.9em;
+    color: var(--text-color-light);
+    min-height: 40px;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+    height: auto;
 }
 
 #map-container {
-    width: 100%;
-    height: 100%; 
-    min-height: 400px; 
+    flex-grow: 1;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #ddd;
 }
 
 #map {
+    height: 100%;
     width: 100%;
-    height: 100%; 
 }
 
-main#map-container {
-    flex-grow: 1; 
+footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: var(--panel-bg-color);
+    color: var(--text-color-muted);
+    text-align: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85em;
+    z-index: 100;
 }
 
-/* Custom Scrollbar (optional, webkit only for broad compatibility with simple CSS) */
 #filters::-webkit-scrollbar {
     width: 8px;
 }
 
 #filters::-webkit-scrollbar-track {
-    background: var(--light-gray);
-    border-radius: 4px;
-}
-
-#filters::-webkit-scrollbar-thumb {
     background: var(--medium-gray);
     border-radius: 4px;
 }
 
-#filters::-webkit-scrollbar-thumb:hover {
+#filters::-webkit-scrollbar-thumb {
     background: var(--secondary-color);
+    border-radius: 4px;
+}
+
+#filters::-webkit-scrollbar-thumb:hover {
+    background: var(--button-secondary-hover-bg-color);
 }
