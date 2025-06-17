@@ -6,77 +6,159 @@
     <title>Zoho Report Map Viewer</title>
     <link rel="stylesheet" href="css/style.css">
     <script defer src="js/mockApi.js"></script>
-    <script defer src="js/script.js"></script>
+    <script defer src="js/map.js"></script>
+    <script defer src="js/filters.js"></script>
+    <script defer src="js/routes.js"></script>
+    <script defer src="js/data.js"></script>
+    <script defer src="js/app.js"></script>
     <script defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAkNYoqjjXZtVhqDE2KnviUlaPIhX7nEUc&callback=initMap&libraries=marker,geometry,places"></script>
     </head>
 <body>
     <div id="container">
-        <aside id="filters">
+        <header class="app-header">
+            <div class="header-content">
+                <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+                <h1>PCG</h1>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <aside id="filters">
             <h2>Filters</h2>
 
             <!-- Filter groups directly stacked -->
             <div class="filter-group">
                 <h3>Projects</h3>
                 <div class="filter-group-content">
-                    <label for="project-status-search">Project Status:</label>
-                    <div class="searchable-dropdown" id="project-status-dropdown">
-                        <input type="text" id="project-status-search" placeholder="Search project status...">
-                        <div class="dropdown-list" id="project-status-list"></div>
+                    <label for="project-search">Search by project ID:</label>
+                    <div class="searchable-dropdown" id="project-search-dropdown">
+                        <input type="text" id="project-search" placeholder="Search by PCC number or project name...">
+                        <div class="dropdown-list" id="project-search-list"></div>
+                    </div>
+                    
+                    <label for="project-type-search">Project Type:</label>
+                    <div class="searchable-dropdown" id="project-type-dropdown">
+                        <input type="text" id="project-type-search" placeholder="Search project type...">
+                        <div class="dropdown-list" id="project-type-list"></div>
+                    </div>
+
+                    <label for="account-name-search">Account Name:</label>
+                    <div class="searchable-dropdown" id="account-name-dropdown">
+                        <input type="text" id="account-name-search" placeholder="Search account name...">
+                        <div class="dropdown-list" id="account-name-list"></div>
                     </div>
                 </div>
             </div>
 
             <div class="filter-group">
-                <h3>Billing Locations</h3>
+                <h3>Resources</h3>
                 <div class="filter-group-content">
-                    <label for="billing-location-search">Billing Location:</label>
-                    <div class="searchable-dropdown" id="billing-location-dropdown">
-                        <input type="text" id="billing-location-search" placeholder="Search billing location...">
-                        <div class="dropdown-list" id="billing-location-list"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="filter-group">
-                <h3>Resource Location</h3>
-                <div class="filter-group-content">
-                    <label for="resource-location-search">Main Resource Location:</label>
-                    <div class="searchable-dropdown" id="resource-location-dropdown">
-                        <input type="text" id="resource-location-search" placeholder="Search resource location...">
-                        <div class="dropdown-list" id="resource-location-list"></div>
+                    <label for="user-role-search">User Role:</label>
+                    <div class="searchable-dropdown" id="user-role-dropdown">
+                        <input type="text" id="user-role-search" placeholder="Search user role...">
+                        <div class="dropdown-list" id="user-role-list"></div>
                     </div>
 
-                    <h4>Roles</h4>
-                    <div class="searchable-dropdown" id="role-dropdown">
-                        <input type="text" id="role-search" placeholder="Search role...">
-                        <div class="dropdown-list" id="role-list"></div>
+                    <label for="employee-type-search">Employee Type:</label>
+                    <div class="searchable-dropdown" id="employee-type-dropdown">
+                        <input type="text" id="employee-type-search" placeholder="Search employee type...">
+                        <div class="dropdown-list" id="employee-type-list"></div>
                     </div>
 
-                    <h4>Status</h4>
+                    <label for="resource-status-search">Resource Status:</label>
                     <div class="searchable-dropdown" id="resource-status-dropdown">
-                        <input type="text" id="resource-status-search" placeholder="Search status...">
+                        <input type="text" id="resource-status-search" placeholder="Search resource status...">
                         <div class="dropdown-list" id="resource-status-list"></div>
                     </div>
                 </div>
             </div>
 
             <div class="filter-group">
-                <h3>Route Planning</h3>
+                <h3>Billing</h3>
                 <div class="filter-group-content">
-                    <button id="start-route-btn">Plan New Route</button>
-                    <div id="route-instructions"></div>
+                    <label for="billing-status-search">Billing Status:</label>
+                    <div class="searchable-dropdown" id="billing-status-dropdown">
+                        <input type="text" id="billing-status-search" placeholder="Search billing status...">
+                        <div class="dropdown-list" id="billing-status-list"></div>
+                    </div>
+
+                    <label for="payment-type-search">Payment Type:</label>
+                    <div class="searchable-dropdown" id="payment-type-dropdown">
+                        <input type="text" id="payment-type-search" placeholder="Search payment type...">
+                        <div class="dropdown-list" id="payment-type-list"></div>
+                    </div>
                 </div>
             </div>
+
             
             <div class="filter-actions">
                  <button id="reset-filters-btn">Reset Filters</button>
             </div>
+            
+            <div class="filter-group">
+                <h3>Legend</h3>
+                <div class="legend-content">
+                    <h4>Marker Types</h4>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #4CAF50;"></span>
+                        <span>Project Location (P)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #2196F3;"></span>
+                        <span>Resource Location (R)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #FF9800;"></span>
+                        <span>Billing Location (B)</span>
+                    </div>
+                </div>
+            </div>
 
-        </aside>
+            </aside>
 
-        <main id="map-container">
+            <main id="map-container">
             <div class="map-type-control">
                 <button id="toggle-satellite-btn">Toggle Satellite View</button>
+            </div>
+            
+            <!-- Route Planning Panel -->
+            <div class="route-planning-panel" id="route-planning-panel">
+                <div class="route-panel-header">
+                    <h3>Route Planning</h3>
+                    <button class="toggle-route-panel" id="toggle-route-panel">−</button>
+                </div>
+                <div class="route-panel-content" id="route-panel-content">
+                    <div class="route-search-field">
+                        <label for="route-start-search">Start:</label>
+                        <div class="searchable-dropdown" id="route-start-dropdown">
+                            <input type="text" id="route-start-search" placeholder="Search start location...">
+                            <div class="dropdown-list" id="route-start-list"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="route-waypoints-container"></div>
+                    
+                    <div class="route-add-waypoint">
+                        <button id="add-waypoint-btn" class="add-waypoint-btn">+</button>
+                    </div>
+                    
+                    <div class="route-search-field">
+                        <label for="route-end-search">End:</label>
+                        <div class="searchable-dropdown" id="route-end-dropdown">
+                            <input type="text" id="route-end-search" placeholder="Search end location...">
+                            <div class="dropdown-list" id="route-end-list"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="route-actions">
+                        <button id="calculate-route-btn" class="route-action-btn calculate-btn">Calculate Route</button>
+                        <button id="clear-route-btn" class="route-action-btn clear-btn">Clear Route</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="google-maps-directions" id="google-maps-directions" style="display: none;">
+                <button id="open-in-google-maps-btn">Open in Google Maps</button>
             </div>
             <div id="map"></div>
             <div class="route-info-panel" id="route-info-panel">
@@ -87,18 +169,10 @@
 
         <div class="map-context-menu" id="map-context-menu" style="display: none;">
             <div class="menu-item" id="view-details">View Details</div>
-            <div class="menu-item" id="start-route">Set as Route Start</div>
-            <div class="menu-item" id="add-to-route">Add to Route</div>
-            <div class="menu-item" id="end-route">Set as Route End</div>
+        </div>
         </div>
     </div>
 
-    <!-- Footer removed or commented out -->
-    <!-- 
-    <footer>
-        <p>&copy; 2025 Your Company</p>
-    </footer>
-    -->
 
     </body>
 </html>
