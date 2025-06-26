@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zoho Report Map Viewer</title>
     <link rel="stylesheet" href="css/style.css">
-    <script defer src="js/mockApi.js"></script>
+    <script defer src="js/zohoApiService.js"></script>
+    <script defer src="js/geocoding.js"></script>
     <script defer src="js/map.js"></script>
     <script defer src="js/filters.js"></script>
     <script defer src="js/routes.js"></script>
     <script defer src="js/data.js"></script>
     <script defer src="js/app.js"></script>
-    <script defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAkNYoqjjXZtVhqDE2KnviUlaPIhX7nEUc&callback=initMap&libraries=marker,geometry,places"></script>
+    <!-- Google Maps will be loaded dynamically to avoid CSP issues in Zoho environment -->
     </head>
 <body>
     <div id="container">
@@ -46,6 +47,12 @@
                     <div class="searchable-dropdown" id="account-name-dropdown">
                         <input type="text" id="account-name-search" placeholder="Search account name...">
                         <div class="dropdown-list" id="account-name-list"></div>
+                    </div>
+
+                    <label for="project-status-search">Project Status:</label>
+                    <div class="searchable-dropdown" id="project-status-dropdown">
+                        <input type="text" id="project-status-search" placeholder="Search project status...">
+                        <div class="dropdown-list" id="project-status-list"></div>
                     </div>
                 </div>
             </div>

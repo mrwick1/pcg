@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCG Map Widget</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Zoho Creator Widget SDK -->
+    <script src="https://js.zohostatic.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+</head>
+<body>
+    <div id="pcg-widget-container">
+        <div id="container">
+            <header class="app-header">
+                <div class="header-content">
+                    <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+                    <h1>PCG Map</h1>
+                </div>
+            </header>
+            
+            <div class="main-content">
+                <aside id="filters">
+                    <h2>Filters</h2>
+
+                    <!-- Filter groups directly stacked -->
+                    <div class="filter-group">
+                        <h3>Projects</h3>
+                        <div class="filter-group-content">
+                            <label for="project-search">Search by project ID:</label>
+                            <div class="searchable-dropdown" id="project-search-dropdown">
+                                <input type="text" id="project-search" placeholder="Search by PCC number or project name...">
+                                <div class="dropdown-list" id="project-search-list"></div>
+                            </div>
+                            
+                            <label for="project-type-search">Project Type:</label>
+                            <div class="searchable-dropdown" id="project-type-dropdown">
+                                <input type="text" id="project-type-search" placeholder="Search project type...">
+                                <div class="dropdown-list" id="project-type-list"></div>
+                            </div>
+
+                            <label for="account-name-search">Account Name:</label>
+                            <div class="searchable-dropdown" id="account-name-dropdown">
+                                <input type="text" id="account-name-search" placeholder="Search account name...">
+                                <div class="dropdown-list" id="account-name-list"></div>
+                            </div>
+
+                            <label for="project-status-search">Project Status:</label>
+                            <div class="searchable-dropdown" id="project-status-dropdown">
+                                <input type="text" id="project-status-search" placeholder="Search project status...">
+                                <div class="dropdown-list" id="project-status-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>Resources</h3>
+                        <div class="filter-group-content">
+                            <label for="user-role-search">User Role:</label>
+                            <div class="searchable-dropdown" id="user-role-dropdown">
+                                <input type="text" id="user-role-search" placeholder="Search user role...">
+                                <div class="dropdown-list" id="user-role-list"></div>
+                            </div>
+
+                            <label for="employee-type-search">Employee Type:</label>
+                            <div class="searchable-dropdown" id="employee-type-dropdown">
+                                <input type="text" id="employee-type-search" placeholder="Search employee type...">
+                                <div class="dropdown-list" id="employee-type-list"></div>
+                            </div>
+
+                            <label for="resource-status-search">Resource Status:</label>
+                            <div class="searchable-dropdown" id="resource-status-dropdown">
+                                <input type="text" id="resource-status-search" placeholder="Search resource status...">
+                                <div class="dropdown-list" id="resource-status-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>Billing</h3>
+                        <div class="filter-group-content">
+                            <label for="billing-status-search">Billing Status:</label>
+                            <div class="searchable-dropdown" id="billing-status-dropdown">
+                                <input type="text" id="billing-status-search" placeholder="Search billing status...">
+                                <div class="dropdown-list" id="billing-status-list"></div>
+                            </div>
+
+                            <label for="payment-type-search">Payment Type:</label>
+                            <div class="searchable-dropdown" id="payment-type-dropdown">
+                                <input type="text" id="payment-type-search" placeholder="Search payment type...">
+                                <div class="dropdown-list" id="payment-type-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="filter-actions">
+                         <button id="reset-filters-btn">Reset Filters</button>
+                         <button id="test-reports-btn" style="background-color: #FF9800; margin-top: 10px;">🧪 Test Reports</button>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h3>Legend</h3>
+                        <div class="legend-content">
+                            <h4>Marker Types</h4>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: #4CAF50;"></span>
+                                <span>Project Location (P)</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: #2196F3;"></span>
+                                <span>Resource Location (R)</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: #FF9800;"></span>
+                                <span>Billing Location (B)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </aside>
+
+                <main id="map-container">
+                    <div class="map-type-control">
+                        <button id="toggle-satellite-btn">Toggle Satellite View</button>
+                    </div>
+                    
+                    <!-- Route Planning Panel -->
+                    <div class="route-planning-panel" id="route-planning-panel">
+                        <div class="route-panel-header">
+                            <h3>Route Planning</h3>
+                            <button class="toggle-route-panel" id="toggle-route-panel">−</button>
+                        </div>
+                        <div class="route-panel-content" id="route-panel-content">
+                            <div class="route-search-field">
+                                <label for="route-start-search">Start:</label>
+                                <div class="searchable-dropdown" id="route-start-dropdown">
+                                    <input type="text" id="route-start-search" placeholder="Search start location...">
+                                    <div class="dropdown-list" id="route-start-list"></div>
+                                </div>
+                            </div>
+                            
+                            <div id="route-waypoints-container"></div>
+                            
+                            <div class="route-add-waypoint">
+                                <button id="add-waypoint-btn" class="add-waypoint-btn">+</button>
+                            </div>
+                            
+                            <div class="route-search-field">
+                                <label for="route-end-search">End:</label>
+                                <div class="searchable-dropdown" id="route-end-dropdown">
+                                    <input type="text" id="route-end-search" placeholder="Search end location...">
+                                    <div class="dropdown-list" id="route-end-list"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="route-actions">
+                                <button id="calculate-route-btn" class="route-action-btn calculate-btn">Calculate Route</button>
+                                <button id="clear-route-btn" class="route-action-btn clear-btn">Clear Route</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="google-maps-directions" id="google-maps-directions" style="display: none;">
+                        <button id="open-in-google-maps-btn">Open in Google Maps</button>
+                    </div>
+                    <div id="map"></div>
+                    <div class="route-info-panel" id="route-info-panel">
+                        <h3>Route Information</h3>
+                        <div id="route-details"></div>
+                    </div>
+                </main>
+
+                <div class="map-context-menu" id="map-context-menu" style="display: none;">
+                    <div class="menu-item" id="view-details">View Details</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Widget JavaScript files -->
+    <script src="js/zohoApiService.js"></script>
+    <script src="js/geocoding.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/filters.js"></script>
+    <script src="js/routes.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

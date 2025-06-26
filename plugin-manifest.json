@@ -1,0 +1,29 @@
+{
+  "service": "CREATOR",
+  "version": "2.0",
+  "permissions": {
+    "data": ["read"]
+  },
+  "cspDomains": {
+    "connect-src": [
+      "https://*.googleapis.com",
+      "https://maps.googleapis.com",
+      "https://maps.google.com",
+      "https://*.zappsusercontent.com",
+      "https://*.zohostatic.com",
+      "https://*.sigmausercontent.com",
+      "https://*.qntrlusercontent.com",
+      "https://*.zohoapis.com",
+      "https://*.zoho.com"
+    ],
+    "script-src": [
+      "https://maps.googleapis.com",
+      "https://*.googleapis.com"
+    ],
+    "img-src": [
+      "https://*.googleapis.com",
+      "https://*.gstatic.com",
+      "https://maps.google.com"
+    ]
+  }
+}
