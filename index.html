@@ -12,7 +12,7 @@
     <script defer src="js/routes.js"></script>
     <script defer src="js/data.js"></script>
     <script defer src="js/app.js"></script>
-    <!-- Google Maps will be loaded dynamically to avoid CSP issues in Zoho environment -->
+    <!-- Google Maps will be loaded dynamically by app.js -->
     </head>
 <body>
     <div id="container">
@@ -31,7 +31,7 @@
             <div class="filter-group">
                 <h3>Projects</h3>
                 <div class="filter-group-content">
-                    <label for="project-search">Search by project ID:</label>
+                    <label for="project-search">Search by project:</label>
                     <div class="searchable-dropdown" id="project-search-dropdown">
                         <input type="text" id="project-search" placeholder="Search by PCC number or project name...">
                         <div class="dropdown-list" id="project-search-list"></div>
@@ -101,32 +101,9 @@
             <div class="filter-actions">
                  <button id="reset-filters-btn">Reset Filters</button>
             </div>
-            
-            <div class="filter-group">
-                <h3>Legend</h3>
-                <div class="legend-content">
-                    <h4>Marker Types</h4>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #4CAF50;"></span>
-                        <span>Project Location (P)</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #2196F3;"></span>
-                        <span>Resource Location (R)</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #FF9800;"></span>
-                        <span>Billing Location (B)</span>
-                    </div>
-                </div>
-            </div>
-
             </aside>
 
             <main id="map-container">
-            <div class="map-type-control">
-                <button id="toggle-satellite-btn">Toggle Satellite View</button>
-            </div>
             
             <!-- Route Planning Panel -->
             <div class="route-planning-panel" id="route-planning-panel">
@@ -180,6 +157,18 @@
         </div>
     </div>
 
+    <!-- Project Summary Modal -->
+    <div id="project-summary-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Project Summary</h3>
+                <span class="modal-close" id="project-summary-close">&times;</span>
+            </div>
+            <div class="modal-body" id="project-summary-body">
+                <!-- Content will be populated dynamically -->
+            </div>
+        </div>
+    </div>
 
     </body>
 </html>

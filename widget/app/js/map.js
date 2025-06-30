@@ -8,9 +8,32 @@ let selectedMarker = null;
 let activeMarkers = [];
 let infoWindows = [];
 
+// Show map error message
+function showMapError(message) {
+    const mapContainer = document.getElementById('map-container');
+    if (mapContainer) {
+        mapContainer.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; border: 2px dashed #dee2e6;">
+                <div style="text-align: center; padding: 2rem; color: #6c757d;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🗺️</div>
+                    <div style="font-size: 1.2rem; font-weight: 500; margin-bottom: 0.5rem;">Map Unavailable</div>
+                    <div style="font-size: 1rem;">${message}</div>
+                </div>
+            </div>
+        `;
+    }
+}
+
 // Initialize Google Maps
 function initializeMap() {
     console.log('initializeMap() called');
+    
+    // Check if Google Maps API is available
+    if (typeof google === 'undefined' || !google.maps) {
+        console.error('Google Maps API not available');
+        showMapError('Google Maps API not loaded. Please check your internet connection.');
+        return;
+    }
     
     // Don't clear the entire map container, just ensure the map div exists
     let actualMapDiv = document.getElementById('map');
@@ -41,6 +64,7 @@ function initializeMap() {
         console.log('Google Maps initialized successfully');
     } catch (error) {
         console.error('Error initializing Google Maps:', error);
+        showMapError('Failed to initialize Google Maps. API key may be invalid.');
         return;
     }
 
@@ -151,7 +175,7 @@ function addMarkerToMap(location, markerType = 'project') {
 
     let title = 'Unknown Location';
     if (markerType === 'project') {
-        title = location.projectStructure?.projectName || 'Unknown Project';
+        title = location.projectName || 'Unknown Project';
     } else if (markerType === 'resource') {
         const fullName = `${location.resource?.employeeName?.firstName || ''} ${location.resource?.employeeName?.lastName || ''}`.trim();
         title = fullName || 'Unknown Employee';
@@ -171,20 +195,94 @@ function addMarkerToMap(location, markerType = 'project') {
 
     marker.addEventListener('gmp-click', (event) => {
         
+        // Debug: Log the actual location object structure
+        console.log('🔍 DEBUG: Marker clicked, markerType:', markerType);
+        console.log('🔍 DEBUG: Location object:', location);
+        console.log('🔍 DEBUG: Location keys:', Object.keys(location));
+        
         // Show info window
         let content = '';
         if (markerType === 'project') {
-            const projectName = location.projectStructure?.projectName || 'Unknown Project';
-            const projectAddress = location.projectStructure?.projectAddress || 'Address not available';
+            // Simple direct field access - no complex fallbacks needed
+            const projectName = location.projectName || 'Unknown Project';
+            const projectNumber = location.projectNumber || 'N/A';
+            const projectAddress = location.address || 'Address not available';
+            const status = location.status || 'N/A';
+            const accountName = location.accountName || 'N/A';
+            const projectType = location.projectType || 'N/A';
+            const claimNumber = location.claimNumber || 'N/A';
+            const contactName = location.contactName || 'N/A';
+            const dateOfLoss = location.dateOfLoss || null;
+            const insurer = location.insurer || 'N/A';
+            
+            const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+            
             content = `
-                <div class="info-window">
-                    <h3>${projectName}</h3>
-                    <p><strong>Type:</strong> Project</p>
-                    <p><strong>PCC Number:</strong> ${location.projectStructure?.pccNumber || 'N/A'}</p>
-                    <p><strong>Project Type:</strong> ${location.projectStructure?.projectType || 'N/A'}</p>
-                    <p><strong>Account:</strong> ${location.projectStructure?.accountName || 'N/A'}</p>
-                    <p><strong>Address:</strong> ${projectAddress}</p>
-                    <p><a href="#" onclick="openDirections(${location.lat}, ${location.lng}, '${projectName.replace(/'/g, "\\'")}')">Open Directions</a></p>
+                <div class="project-info-window">
+                    <div class="info-header status-${statusClass}">
+                        <div class="project-icon">
+                            <span class="icon-text">P</span>
+                        </div>
+                        <div class="project-title">
+                            <h3>${projectName}</h3>
+                            <span class="project-status status-${statusClass}">${status}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-content">
+                        <div class="info-row">
+                            <span class="info-label">PCC Number:</span>
+                            <span class="info-value">${projectNumber}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Project Type:</span>
+                            <span class="info-value">${projectType}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Account:</span>
+                            <span class="info-value">${accountName}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Claim Number:</span>
+                            <span class="info-value">${claimNumber}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Contact:</span>
+                            <span class="info-value">${contactName}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Insurer:</span>
+                            <span class="info-value">${insurer}</span>
+                        </div>
+                        
+                        <div class="info-row address-row">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value">${projectAddress}</span>
+                        </div>
+                        
+                        ${dateOfLoss ? `
+                        <div class="info-row">
+                            <span class="info-label">Date of Loss:</span>
+                            <span class="info-value">${dateOfLoss}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="info-actions">
+                        <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, '${projectName.replace(/'/g, "\\'")}')">
+                            <span class="btn-icon">📍</span>
+                            Get Directions
+                        </button>
+                        <button class="action-btn secondary" onclick="viewProjectSummary('${location.id || projectNumber}')">
+                            <span class="btn-icon">📄</span>
+                            View Summary
+                        </button>
+                    </div>
                 </div>
             `;
         } else if (markerType === 'resource') {
@@ -306,14 +404,12 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
         
         // Fetch from three separate APIs independently
         // Simplified: Only fetch projects data
-        const projectsResponse = await fetchProjectsData({
+        const projectLocations = await getProjectsData({
             projectNumber: filters.pccNumber,
             reportType: filters.projectType,
             accountName: filters.accountName,
             status: filters.project_status
         });
-
-        const projectLocations = projectsResponse.data;
         
         // COMMENTED OUT: Resources and billing removed for simplification
         // const resourcesResponse = await fetchResourcesData({
@@ -328,9 +424,11 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
         // const resourceLocations = resourcesResponse.data;
         // const billingLocations = billingResponse.data;
 
-        // Add project markers (P)
+        // Add project markers (P) - only for projects with valid coordinates
         for (const location of projectLocations) {
-            addMarkerToMap(location, 'project');
+            if (hasValidCoordinates(location)) {
+                addMarkerToMap(location, 'project');
+            }
         }
         
         // COMMENTED OUT: Resource and billing markers removed for simplification
@@ -349,7 +447,7 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
             if (changedFilter === 'projectSearch' && filters.pccNumber) {
                 // Zoom to specific project
                 const projectMarker = activeMarkers.find(marker => 
-                    marker.markerType === 'project' && marker.location.projectStructure?.pccNumber === filters.pccNumber
+                    marker.markerType === 'project' && marker.location.projectNumber === filters.pccNumber
                 );
                 if (projectMarker) {
                     map.setCenter(projectMarker.position);
@@ -430,15 +528,86 @@ function handleViewDetails() {
         
         let content = '';
         if (markerType === 'project') {
-            const projectName = location.projectStructure?.projectName || 'Unknown Project';
+            const projectName = location.projectName || 'Unknown Project';
+            const projectNumber = location.projectNumber || 'N/A';
+            const projectAddress = location.address || 'Address not available';
+            const status = location.status || 'N/A';
+            const accountName = location.accountName || 'N/A';
+            const projectType = location.projectType || 'N/A';
+            const claimNumber = location.claimNumber || 'N/A';
+            const contactName = location.contactName || 'N/A';
+            const dateOfLoss = location.dateOfLoss || null;
+            const insurer = location.insurer || 'N/A';
+            
+            const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+            
             content = `
-                <h3>${projectName}</h3>
-                <p><strong>PCC Number:</strong> ${location.projectStructure?.pccNumber || 'N/A'}</p>
-                <p><strong>Project Type:</strong> ${location.projectStructure?.projectType || 'N/A'}</p>
-                <p><strong>Account:</strong> ${location.projectStructure?.accountName || 'N/A'}</p>
-                <p><strong>Address:</strong> ${location.projectStructure?.projectAddress || 'N/A'}</p>
-                <p><a href="#" onclick="showProjectSummary('${location.projectStructure?.pccNumber}')">View Project Summary</a></p>
-                <p><a href="#" onclick="openDirections(${location.lat}, ${location.lng}, '${projectName.replace(/'/g, "\\'")}')">Open Directions</a></p>
+                <div class="project-info-window">
+                    <div class="info-header status-${statusClass}">
+                        <div class="project-icon">
+                            <span class="icon-text">P</span>
+                        </div>
+                        <div class="project-title">
+                            <h3>${projectName}</h3>
+                            <span class="project-status status-${statusClass}">${status}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-content">
+                        <div class="info-row">
+                            <span class="info-label">PCC Number:</span>
+                            <span class="info-value">${projectNumber}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Project Type:</span>
+                            <span class="info-value">${projectType}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Account:</span>
+                            <span class="info-value">${accountName}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Claim Number:</span>
+                            <span class="info-value">${claimNumber}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Contact:</span>
+                            <span class="info-value">${contactName}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Insurer:</span>
+                            <span class="info-value">${insurer}</span>
+                        </div>
+                        
+                        <div class="info-row address-row">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value">${projectAddress}</span>
+                        </div>
+                        
+                        ${dateOfLoss ? `
+                        <div class="info-row">
+                            <span class="info-label">Date of Loss:</span>
+                            <span class="info-value">${dateOfLoss}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="info-actions">
+                        <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, '${projectName.replace(/'/g, "\\'")}')">
+                            <span class="btn-icon">📍</span>
+                            Get Directions
+                        </button>
+                        <button class="action-btn secondary" onclick="viewProjectSummary('${location.id || projectNumber}')">
+                            <span class="btn-icon">📄</span>
+                            View Summary
+                        </button>
+                    </div>
+                </div>
             `;
         } else if (markerType === 'resource') {
             const fullName = `${location.resource?.employeeName?.firstName || ''} ${location.resource?.employeeName?.lastName || ''}`.trim();
@@ -501,3 +670,106 @@ const infoWindowStyles = `
 const styleElement = document.createElement('style');
 styleElement.textContent = infoWindowStyles;
 document.head.appendChild(styleElement);
+
+// Info window action functions
+window.viewProjectSummary = function(projectId) {
+    console.log('🔍 Opening project summary for:', projectId);
+    
+    const projectData = activeMarkers.find(marker => 
+        marker.markerType === 'project' && 
+        (marker.location.id === projectId || marker.location.projectNumber === projectId)
+    );
+    
+    if (projectData) {
+        const project = projectData.location;
+        
+        // Get status class for styling
+        const statusClass = project.status ? project.status.toLowerCase().replace(/\s+/g, '-') : 'unknown';
+        
+        const summaryHTML = `
+            <div class="project-summary-section">
+                <h4>Project Overview</h4>
+                <div class="project-detail-grid">
+                    <span class="project-detail-label">Project Name:</span>
+                    <span class="project-detail-value">${project.projectName || 'N/A'}</span>
+                    
+                    <span class="project-detail-label">PCC Number:</span>
+                    <span class="project-detail-value">${project.projectNumber || 'N/A'}</span>
+                    
+                    <span class="project-detail-label">Status:</span>
+                    <span class="project-detail-value">
+                        <span class="project-status-badge status-${statusClass}">${project.status || 'Unknown'}</span>
+                    </span>
+                    
+                    <span class="project-detail-label">Project Type:</span>
+                    <span class="project-detail-value">${project.projectType || 'N/A'}</span>
+                </div>
+            </div>
+            
+            <div class="project-summary-section">
+                <h4>Client Information</h4>
+                <div class="project-detail-grid">
+                    <span class="project-detail-label">Account:</span>
+                    <span class="project-detail-value">${project.accountName || 'N/A'}</span>
+                    
+                    <span class="project-detail-label">Contact:</span>
+                    <span class="project-detail-value">${project.contactName || 'N/A'}</span>
+                    
+                    <span class="project-detail-label">Insurer:</span>
+                    <span class="project-detail-value">${project.insurer || 'N/A'}</span>
+                    
+                    <span class="project-detail-label">Claim Number:</span>
+                    <span class="project-detail-value">${project.claimNumber || 'N/A'}</span>
+                </div>
+            </div>
+            
+            <div class="project-summary-section">
+                <h4>Location & Timeline</h4>
+                <div class="project-detail-grid">
+                    <span class="project-detail-label">Address:</span>
+                    <span class="project-detail-value">${project.address || 'N/A'}</span>
+                    
+                    ${project.dateOfLoss ? `
+                    <span class="project-detail-label">Date of Loss:</span>
+                    <span class="project-detail-value">${project.dateOfLoss}</span>
+                    ` : ''}
+                    
+                    <span class="project-detail-label">Coordinates:</span>
+                    <span class="project-detail-value">${project.lat && project.lng ? `${project.lat.toFixed(4)}, ${project.lng.toFixed(4)}` : 'N/A'}</span>
+                </div>
+            </div>
+        `;
+        
+        // Populate and show modal
+        const modalBody = document.getElementById('project-summary-body');
+        const modal = document.getElementById('project-summary-modal');
+        
+        if (modalBody && modal) {
+            modalBody.innerHTML = summaryHTML;
+            modal.style.display = 'block';
+            
+            // Setup close functionality
+            const closeBtn = document.getElementById('project-summary-close');
+            if (closeBtn) {
+                closeBtn.onclick = function() {
+                    modal.style.display = 'none';
+                };
+            }
+            
+            // Close when clicking outside modal
+            modal.onclick = function(event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            };
+        }
+    } else {
+        alert('Project details not found.');
+    }
+};
+
+window.openDirections = function(lat, lng, locationName) {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    window.open(url, '_blank');
+    console.log(`🗺️ Opening directions to ${locationName} at ${lat}, ${lng}`);
+};

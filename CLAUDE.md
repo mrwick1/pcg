@@ -31,6 +31,8 @@ Three separate mock APIs provide:
 
 ## Development Workflow
 
+**IMPORTANT CODE CHANGES**: Always make changes to files in the root `js/` and `css/` directories only. The widget packaging process automatically copies these to the `widget/app/` directory, so changes made directly in `widget/app/` will be overwritten.
+
 ### Zoho Creator Widget Packaging Process
 **IMPORTANT**: When validating and packing the widget, always follow this EXACT process:
 
@@ -55,6 +57,7 @@ This ensures the widget always uses the latest code and is properly validated an
 - Uses Google Maps JavaScript API with custom markers
 - Requires API key (currently exposed in widget.html)
 - Map ID: 'fb4518226e59c4892eee2d21' for advanced markers
+- **API Key Domain Restrictions**: If you encounter `ApiTargetBlockedMapError`, the API key has domain restrictions. Add your domain to the API key's allowed domains in Google Cloud Console, or use a different API key without domain restrictions for development.
 
 ### Module Dependencies
 - Scripts load in specific order: zohoApiService → geocoding → map → filters → routes → data → app

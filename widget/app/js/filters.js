@@ -85,6 +85,16 @@ function initializeDropdowns() {
         
         dropdown.input.addEventListener('input', () => {
             const searchTerm = dropdown.input.value.toLowerCase();
+            
+            // If input is empty, reset the selection and apply filters
+            if (searchTerm === '') {
+                dropdown.selected = '';
+                applyFilters(key);
+                updateDropdownList(key, dropdown.options);
+                dropdown.list.classList.add('show');
+                return;
+            }
+            
             let filteredOptions;
             
             if (key === 'projectSearch') {
@@ -161,20 +171,24 @@ function updateDropdownList(dropdownKey, options) {
 async function populateDropdownOptions() {
     try {
         // Fetch only projects data (simplified)
-        const projectsResponse = await fetchProjectsData({});
+        const projectsData = await getProjectsData({});
 
         // Create project options with project number and project name for search
-        const projects = projectsResponse.data
-            .filter(p => p && p.projectNumber && p.projectName)
-            .map(p => ({
-                pccNumber: p.projectNumber,
-                projectName: p.projectName,
-                displayText: `${p.projectNumber} - ${p.projectName}`
-            }));
+        // Only include projects with valid coordinates
+        console.log(`🔍 Raw projects data length: ${projectsData.length}`);
+        
+        const validProjects = projectsData.filter(p => p && p.projectNumber && p.projectName && hasValidCoordinates(p));
+        console.log(`✅ Projects with valid coordinates for dropdown: ${validProjects.length}`);
+        
+        const projects = validProjects.map(p => ({
+            pccNumber: p.projectNumber,
+            projectName: p.projectName,
+            displayText: `${p.projectNumber} - ${p.projectName}`
+        }));
         
         // Get unique values from projects data (simplified)
-        const projectTypes = [...new Set(projectsResponse.data.map(p => p.reportType).filter(Boolean))];
-        const accountNames = [...new Set(projectsResponse.data.map(p => p.accountName).filter(Boolean))];
+        const projectTypes = [...new Set(projectsData.map(p => p.projectType).filter(Boolean))];
+        const accountNames = [...new Set(projectsData.map(p => p.accountName).filter(Boolean))];
         
         // COMMENTED OUT: Functions not available in simplified version
         // const userRoles = getUniqueUserRoles().filter(role => role && typeof role === 'string');

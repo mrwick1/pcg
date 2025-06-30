@@ -7,6 +7,9 @@ const ZOHO_CONFIG = {
     projectsReportName: 'All_Projects'
 };
 
+// Request deduplication to prevent multiple simultaneous API calls
+let ongoingAPIRequest = null;
+
 // Check if Zoho Creator API is available
 function isZohoAPIAvailable() {
     return typeof ZOHO !== 'undefined' && 
@@ -39,83 +42,127 @@ async function initializeZohoAPI() {
     return false;
 }
 
-// Make API call to fetch All_Projects data
-async function fetchAllProjectsData(page = 1, pageSize = 200) {
-    console.log(`🔄 Fetching All_Projects data (page: ${page}, pageSize: ${pageSize})`);
+// Make API call to fetch All_Projects data with pagination
+async function fetchAllProjectsData() {
+    console.log('🔄 Fetching All_Projects data with pagination (max_records: 1000 per page)');
     
     if (!isZohoAPIAvailable()) {
         console.log('❌ Zoho API not available, returning mock data');
         return getMockProjectsData();
     }
     
-    // Try different configuration approaches based on official Zoho Creator v2 API docs
-    const configs = [
-        // Config 1: Minimal config (recommended)
-        {
-            app_name: ZOHO_CONFIG.appName,
-            report_name: ZOHO_CONFIG.projectsReportName
-        },
-        // Config 2: With max_records
-        {
-            app_name: ZOHO_CONFIG.appName,
-            report_name: ZOHO_CONFIG.projectsReportName,
-            max_records: parseInt(pageSize)
-        },
-        // Config 3: With criteria and max_records
-        {
-            app_name: ZOHO_CONFIG.appName,
-            report_name: ZOHO_CONFIG.projectsReportName,
-            criteria: '',
-            max_records: parseInt(pageSize)
-        },
-        // Config 4: Without app_name (uses current app)
-        {
-            report_name: ZOHO_CONFIG.projectsReportName,
-            max_records: parseInt(pageSize)
-        },
-        // Config 5: With field_config
-        {
-            app_name: ZOHO_CONFIG.appName,
-            report_name: ZOHO_CONFIG.projectsReportName,
-            field_config: 'all',
-            max_records: parseInt(pageSize)
-        }
-    ];
+    let allRecords = [];
+    let recordCursor = null;
+    let pageNumber = 1;
+    let hasMoreRecords = true;
     
-    // Try DATA.getRecords first
-    if (ZOHO.CREATOR.DATA?.getRecords) {
-        for (let i = 0; i < configs.length; i++) {
+    while (hasMoreRecords) {
+        // Build config for this page
+        const config = {
+            app_name: ZOHO_CONFIG.appName,
+            report_name: ZOHO_CONFIG.projectsReportName,
+            max_records: 1000
+        };
+        
+        // Add record_cursor for subsequent pages
+        if (recordCursor) {
+            config.record_cursor = recordCursor;
+        }
+        
+        console.log(`📤 Fetching page ${pageNumber} with config:`, config);
+        
+        let pageResponse = null;
+        
+        // Try DATA.getRecords first
+        if (ZOHO.CREATOR.DATA?.getRecords) {
             try {
-                console.log(`📤 ZOHO.CREATOR.DATA.getRecords attempt ${i + 1}:`, configs[i]);
-                const response = await ZOHO.CREATOR.DATA.getRecords(configs[i]);
-                console.log(`✅ Config ${i + 1} worked! Response:`, response);
-                
-                return processAPIResponse(response);
-                
+                pageResponse = await ZOHO.CREATOR.DATA.getRecords(config);
+                console.log(`✅ Page ${pageNumber} DATA.getRecords successful`);
             } catch (error) {
-                console.log(`❌ Config ${i + 1} failed:`, JSON.stringify(error, null, 2));
+                console.log(`❌ Page ${pageNumber} DATA.getRecords failed:`, JSON.stringify(error, null, 2));
             }
+        }
+        
+        // Try PUBLISH.getRecords as fallback
+        if (!pageResponse && ZOHO.CREATOR.PUBLISH?.getRecords) {
+            try {
+                pageResponse = await ZOHO.CREATOR.PUBLISH.getRecords(config);
+                console.log(`✅ Page ${pageNumber} PUBLISH.getRecords successful`);
+            } catch (error) {
+                console.log(`❌ Page ${pageNumber} PUBLISH.getRecords failed:`, JSON.stringify(error, null, 2));
+            }
+        }
+        
+        if (!pageResponse) {
+            console.log(`❌ Page ${pageNumber} failed, stopping pagination`);
+            break;
+        }
+        
+        // Process this page's response
+        const processedPage = processAPIResponse(pageResponse);
+        
+        if (processedPage.data && processedPage.data.length > 0) {
+            allRecords = allRecords.concat(processedPage.data);
+            console.log(`📄 Page ${pageNumber}: Added ${processedPage.data.length} records (total: ${allRecords.length})`);
+            
+            // Check for pagination cursor in response
+            recordCursor = extractRecordCursor(pageResponse);
+            
+            if (recordCursor) {
+                console.log(`🔄 Found record_cursor for next page: ${recordCursor}`);
+                pageNumber++;
+            } else {
+                console.log('🏁 No more pages available');
+                hasMoreRecords = false;
+            }
+            
+            // Safety check to prevent infinite loops
+            if (pageNumber > 50) {
+                console.log('⚠️ Reached maximum page limit (50), stopping pagination');
+                hasMoreRecords = false;
+            }
+        } else {
+            console.log(`📄 Page ${pageNumber}: No records returned, stopping pagination`);
+            hasMoreRecords = false;
         }
     }
     
-    // Try PUBLISH.getRecords as fallback
-    if (ZOHO.CREATOR.PUBLISH?.getRecords) {
-        for (let i = 0; i < configs.length; i++) {
-            try {
-                console.log(`📤 ZOHO.CREATOR.PUBLISH.getRecords attempt ${i + 1}:`, configs[i]);
-                const response = await ZOHO.CREATOR.PUBLISH.getRecords(configs[i]);
-                console.log(`✅ PUBLISH Config ${i + 1} worked! Response:`, response);
-                
-                return processAPIResponse(response);
-                
-            } catch (error) {
-                console.log(`❌ PUBLISH Config ${i + 1} failed:`, JSON.stringify(error, null, 2));
-            }
-        }
+    console.log(`✅ Pagination complete! Retrieved ${allRecords.length} total records across ${pageNumber} pages`);
+    
+    return {
+        data: allRecords,
+        success: allRecords.length > 0,
+        mock: false,
+        totalPages: pageNumber,
+        totalRecords: allRecords.length
+    };
+}
+
+// Helper function to extract record_cursor from API response
+function extractRecordCursor(response) {
+    // Check various possible cursor field names based on Zoho API documentation
+    if (response && response.record_cursor) {
+        return response.record_cursor;
+    }
+    if (response && response.cursor) {
+        return response.cursor;
+    }
+    if (response && response.next_cursor) {
+        return response.next_cursor;
+    }
+    if (response && response.pagination && response.pagination.cursor) {
+        return response.pagination.cursor;
+    }
+    if (response && response.pagination && response.pagination.record_cursor) {
+        return response.pagination.record_cursor;
     }
     
-    console.log('❌ All API attempts failed, returning mock data');
-    return getMockProjectsData();
+    // Check if there are more records available (some APIs use has_more flag)
+    if (response && response.has_more === false) {
+        return null;
+    }
+    
+    return null;
 }
 
 // Process API response to extract data
@@ -178,33 +225,123 @@ function getMockProjectsData() {
 function processProjectData(rawProjects) {
     console.log(`📊 Processing ${rawProjects.length} projects`);
     
-    return rawProjects.map(project => ({
-        id: project.ID,
-        projectNumber: project.Project_Number,
-        projectName: project.Project_Name,
-        address: project.Loss_Location_Street_Address,
-        accountName: project.Account_Name,
-        claimNumber: project.Claim_Number,
-        insurer: project.Insurer,
-        reportType: project.Type_of_Report,
-        status: project["PS_5.Completion_Status"] || 'Unknown',
-        completed: project.Project_Completed === 'true',
-        contactName: project.Contact_Name,
-        dateOfLoss: project.Date_of_Loss,
-        rawData: project
-    }));
+    const processedProjects = rawProjects.map((project, index) => {
+        // Extract and validate coordinates
+        const rawLat = project.Latitude;
+        const rawLng = project.Longitude;
+        
+        // Convert to numbers, set to null if empty/invalid
+        const lat = (rawLat && rawLat !== '') ? Number.parseFloat(rawLat) : null;
+        const lng = (rawLng && rawLng !== '') ? Number.parseFloat(rawLng) : null;
+        
+        // Debug: Log first few projects to see mapping
+        if (index < 3) {
+            console.log('🔍 DEBUG: Raw project data:', project);
+            console.log('🔍 DEBUG: Mapped project name:', project.Project_Name);
+            console.log('🔍 DEBUG: Mapped project number:', project.Project_Number);
+        }
+        
+        return {
+            id: project.ID,
+            projectNumber: project.Project_Number,
+            projectName: project.Project_Name,
+            projectType: project.Type_of_Report,
+            accountName: project.Account_Name,
+            claimNumber: project.Claim_Number,
+            contactName: project.Contact_Name,
+            address: project.Loss_Location_Street_Address,
+            status: project["PS_5.Completion_Status"] || 'Unknown',
+            dateOfLoss: project.Date_of_Loss,
+            insurer: project.Insurer,
+            policyNumber: project.Policy_Number,
+            completed: project.Project_Completed === 'true',
+            lat: lat,
+            lng: lng,
+            lastUpdated: Date.now()
+        };
+    });
+    
+    // Log coordinate statistics
+    const withCoords = processedProjects.filter(p => p.lat !== null && p.lng !== null);
+    const withoutCoords = processedProjects.length - withCoords.length;
+    console.log(`🗺️  Projects with coordinates: ${withCoords.length}`);
+    console.log(`❌ Projects without coordinates: ${withoutCoords}`);
+    
+    return processedProjects;
 }
 
-// Main function to fetch and process projects
+// Main function to get projects data with IndexedDB integration
 async function getProjectsData(filters = {}) {
     console.log('🏗️ Getting projects data with filters:', filters);
+    
+    try {
+        // Check if IndexedDB service is available
+        if (!window.indexedDBService) {
+            console.log('⚠️ IndexedDB service not available, falling back to direct API');
+            return await getProjectsDataDirect(filters);
+        }
+        
+        // Check if we need to sync data from API
+        const needsSync = await window.indexedDBService.needsSync('projects');
+        
+        if (needsSync) {
+            // Check if an API request is already in progress
+            if (ongoingAPIRequest) {
+                console.log('⏳ API request already in progress, waiting for completion...');
+                await ongoingAPIRequest;
+            } else {
+                console.log('🔄 Data needs sync, fetching from API and storing in IndexedDB...');
+                
+                // Start API request and store promise to prevent duplicates
+                ongoingAPIRequest = (async () => {
+                    try {
+                        // Fetch fresh data from API
+                        const response = await fetchAllProjectsData();
+                        
+                        if (response.success && response.data.length > 0) {
+                            // Process the data
+                            const processedProjects = processProjectData(response.data);
+                            
+                            // Store in IndexedDB
+                            await window.indexedDBService.storeProjectsData(processedProjects);
+                            console.log('✅ Fresh data stored in IndexedDB');
+                        } else {
+                            console.log('⚠️ API sync failed, using existing IndexedDB data if available');
+                        }
+                    } finally {
+                        // Clear the ongoing request promise
+                        ongoingAPIRequest = null;
+                    }
+                })();
+                
+                await ongoingAPIRequest;
+            }
+        } else {
+            console.log('💾 Using IndexedDB data (up to date)');
+        }
+        
+        // Get filtered data from IndexedDB
+        return await window.indexedDBService.getProjectsFromDB(filters);
+        
+    } catch (error) {
+        console.error('❌ Error getting projects data:', error);
+        
+        // Fallback to direct API call
+        console.log('🔄 Falling back to direct API call...');
+        return await getProjectsDataDirect(filters);
+    }
+}
+
+// Fallback function for direct API calls (when IndexedDB is not available)
+async function getProjectsDataDirect(filters = {}) {
+    console.log('🔄 Getting projects data directly from API with filters:', filters);
     
     try {
         // Initialize API
         const apiAvailable = await initializeZohoAPI();
         
         // Fetch raw data
-        const response = await fetchAllProjectsData(1, 200);
+        const response = await fetchAllProjectsData();
         
         if (!response.success) {
             console.log('⚠️ API call was not successful');
@@ -213,8 +350,9 @@ async function getProjectsData(filters = {}) {
         // Process data
         const processedProjects = processProjectData(response.data);
         
-        // Apply filters if any
+        // Apply filters
         let filteredProjects = processedProjects;
+        
         if (filters.status) {
             filteredProjects = filteredProjects.filter(p => p.status === filters.status);
         }
@@ -223,8 +361,18 @@ async function getProjectsData(filters = {}) {
                 p.projectNumber && p.projectNumber.includes(filters.projectNumber)
             );
         }
+        if (filters.reportType) {
+            filteredProjects = filteredProjects.filter(p => 
+                p.reportType && p.reportType.includes(filters.reportType)
+            );
+        }
+        if (filters.accountName) {
+            filteredProjects = filteredProjects.filter(p => 
+                p.accountName && p.accountName.toLowerCase().includes(filters.accountName.toLowerCase())
+            );
+        }
         
-        console.log(`✅ Returning ${filteredProjects.length} filtered projects from ${processedProjects.length} total`);
+        console.log(`✅ Returning ${filteredProjects.length} filtered projects from ${processedProjects.length} total (direct API)`);
         
         return {
             data: filteredProjects,
@@ -235,7 +383,7 @@ async function getProjectsData(filters = {}) {
         };
         
     } catch (error) {
-        console.error('❌ Error getting projects data:', error);
+        console.error('❌ Error getting projects data directly:', error);
         return {
             data: [],
             total: 0,
@@ -245,6 +393,9 @@ async function getProjectsData(filters = {}) {
         };
     }
 }
+
+
+
 
 // Debug functions for testing
 window.debugZohoAPI = function() {
@@ -257,6 +408,8 @@ window.debugZohoAPI = function() {
         console.log('PUBLISH.getRecords available:', !!ZOHO.CREATOR.PUBLISH?.getRecords);
         console.log('META.getReports available:', !!ZOHO.CREATOR.META?.getReports);
     }
+    
+    console.log('📊 IndexedDB storage now used instead of cache');
     console.log('🔍 === DEBUG COMPLETE ===');
 };
 
@@ -276,6 +429,33 @@ window.testAllProjectsAPI = async function() {
     }
     
     console.log('🧪 === TEST COMPLETE ===');
+};
+
+window.testPagination = async function() {
+    console.log('🧪 === TESTING PAGINATION ===');
+    
+    if (!isZohoAPIAvailable()) {
+        console.log('❌ Zoho API not available');
+        return;
+    }
+    
+    try {
+        // Test pagination by directly calling fetchAllProjectsData
+        console.log('🔄 Starting pagination test...');
+        const result = await fetchAllProjectsData();
+        
+        console.log('✅ Pagination test complete!');
+        console.log(`📊 Results: ${result.totalRecords} records across ${result.totalPages} pages`);
+        console.log(`📄 First few records:`, result.data.slice(0, 3));
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Pagination test failed:', error);
+        return null;
+    }
+    
+    console.log('🧪 === PAGINATION TEST COMPLETE ===');
 };
 
 window.testAPIConfigs = async function() {

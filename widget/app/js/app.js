@@ -27,23 +27,39 @@ function loadGoogleMapsAPI() {
         
         // Create script element
         const script = document.createElement('script');
-        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyAkNYoqjjXZtVhqDE2KnviUlaPIhX7nEUc&callback=googleMapsLoaded&libraries=marker,geometry,places';
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCaz7EGp-94C2Zs4H_hJY2ffV-kRzV-LOU&callback=googleMapsLoaded&libraries=marker,geometry,places&loading=async';
         script.async = true;
         script.defer = true;
         
         // Set up global callback for initial API load
         window.googleMapsLoaded = function() {
             console.log('Google Maps script loaded successfully');
-            // Now call the actual map initialization
-            if (typeof window.initMap === 'function') {
-                window.initMap();
+            // Validate that Google Maps actually loaded
+            if (typeof google !== 'undefined' && google.maps) {
+                console.log('Google Maps API validated successfully');
+                // Now call the actual map initialization
+                if (typeof window.initMap === 'function') {
+                    window.initMap();
+                }
+                resolve();
+            } else {
+                console.error('Google Maps API callback fired but google.maps not available');
+                reject(new Error('Google Maps API validation failed'));
             }
-            resolve();
         };
         
-        script.onerror = () => {
-            reject(new Error('Failed to load Google Maps API'));
+        script.onerror = (error) => {
+            console.error('Failed to load Google Maps API script:', error);
+            reject(new Error('Google Maps API script failed to load - check API key'));
         };
+        
+        // Timeout handling
+        setTimeout(() => {
+            if (typeof google === 'undefined' || !google.maps) {
+                console.error('Google Maps API loading timeout');
+                reject(new Error('Google Maps API loading timeout - check API key and network'));
+            }
+        }, 10000); // 10 second timeout
         
         console.log('Adding Google Maps script to head');
         document.head.appendChild(script);

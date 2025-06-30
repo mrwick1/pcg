@@ -27,7 +27,7 @@ function loadGoogleMapsAPI() {
         
         // Create script element
         const script = document.createElement('script');
-        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyAkNYoqjjXZtVhqDE2KnviUlaPIhX7nEUc&callback=googleMapsLoaded&libraries=marker,geometry,places';
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCaz7EGp-94C2Zs4H_hJY2ffV-kRzV-LOU&callback=googleMapsLoaded&libraries=marker,geometry,places';
         script.async = true;
         script.defer = true;
         

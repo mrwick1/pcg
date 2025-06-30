@@ -349,14 +349,14 @@ async function populateRouteDropdownOptions() {
         // Create options for all location types
         const allOptions = [];
 
-        // Add projects (updated for new simplified data structure)
+        // Add projects (only those with valid coordinates)
         projects.forEach(project => {
-            if (project && project.projectName && project.address) {
+            if (project && project.projectName && project.address && hasValidCoordinates(project)) {
                 allOptions.push({
                     id: project.projectNumber || project.id,
                     name: project.projectName,
-                    lat: 0, // TODO: Add geocoding later if needed
-                    lng: 0,
+                    lat: project.lat,
+                    lng: project.lng,
                     type: 'project',
                     address: project.address
                 });
