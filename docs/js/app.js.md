@@ -1,47 +1,78 @@
-# `app.js`
+# app.js Documentation
 
 ## Overview
-
-This file is the main entry point for the application. It handles the initialization of the user interface, dynamic loading of the Google Maps API, and the subsequent initialization of map-dependent and non-map-dependent features.
+Main application initialization file that coordinates all modules and manages the application lifecycle. Handles dynamic Google Maps API loading, UI initialization, and module coordination.
 
 ## Key Functions
 
-### `loadGoogleMapsAPI()`
+### loadGoogleMapsAPI()
+- Dynamically loads Google Maps API with comprehensive error handling
+- Checks if Google Maps is already loaded to prevent duplicate loading
+- Sets up global callback `googleMapsLoaded` for API initialization
+- Includes 10-second timeout protection with detailed error logging
+- Validates API availability after callback execution
 
--   **Purpose:** Dynamically loads the Google Maps API script.
--   **Process:**
-    1.  Checks if the Google Maps API is already loaded.
-    2.  If not, it creates a `<script>` tag with the API URL (including a new API key) and a callback function (`googleMapsLoaded`).
-    3.  Appends the script to the document's `<head>`.
-    4.  Returns a `Promise` that resolves when the API is loaded or rejects on error.
+### initializeMapAndFeatures()
+- Initializes all managers after Google Maps API is available
+- Sets up filter dropdown initialization
+- Initializes route planning UI and Google Maps-dependent features
+- Uses polling mechanism to ensure map readiness before route initialization
+- Calls `initializeTestInputs()` for debugging support
 
-### `initializeMapAndFeatures()`
+### initializeNonMapFeatures()
+- Fallback initialization for features that don't require maps
+- Initializes filter dropdowns and test inputs only
+- Provides graceful degradation when Google Maps is unavailable
 
--   **Purpose:** Initializes features that depend on the Google Maps API.
--   **Process:**
-    1.  Initializes the `filterManager` dropdowns.
-    2.  Initializes the `routeManager` UI and, once Google Maps is ready, the route planning functionality.
-    3.  Sets up test inputs for debugging.
+### initializeTestInputs()
+- Sets up debugging event listeners for route input fields
+- Adds test event handlers with console logging
+- Delayed execution with 1-second timeout for DOM readiness
 
-### `initializeNonMapFeatures()`
+### initializeUI()
+- Sets up core UI event handlers
+- Initializes reset filters button functionality
+- Sets up view details button handler
+- Configures mobile menu toggle functionality
+- Implements click-outside-to-close behavior for mobile sidebar
 
--   **Purpose:** Initializes features that do not require the Google Maps API. This serves as a fallback if the API fails to load.
--   **Process:**
-    1.  Initializes `filterManager` dropdowns.
-    2.  Sets up test inputs.
+## Event Handling
+- **Reset Filters**: Calls `filterManager.resetAllFilters()`
+- **View Details**: Calls `handleViewDetails()` function
+- **Mobile Menu Toggle**: Toggles `mobile-open` class on sidebar
+- **Click Outside**: Closes mobile menu when clicking outside sidebar area
 
-### `initializeUI()`
+## Dependencies
+- **Google Maps JavaScript API**: Core mapping functionality
+- **Filter Manager** (`filterManager`): Filter dropdown management
+- **Route Manager** (`routeManager`): Route planning functionality
+- **Map functionality** (`map.js`): Map rendering and marker management
 
--   **Purpose:** Sets up general user interface event listeners.
--   **Process:**
-    1.  Attaches a click listener to the "Reset Filters" button.
-    2.  Attaches a click listener to the "View Details" button.
-    3.  Initializes the mobile menu toggle button and handles closing the menu when clicking outside of it.
+## Error Handling
+- Comprehensive Google Maps API loading error handling
+- Graceful fallback when Google Maps API fails to load
+- Timeout protection for API loading (10 seconds)
+- Detailed console logging for debugging API issues
+- Fallback to non-map features when maps are unavailable
 
-## Event Listeners
+## Global Callbacks
+- **`window.googleMapsLoaded`**: Global callback function for Google Maps API
+- **`window.initMap`**: Alternative callback that triggers map initialization
 
--   **`DOMContentLoaded`**: The main event listener that kicks off the entire application initialization process.
--   **`click` on `#reset-filters-btn`**: Resets all active filters.
--   **`click` on `#view-details`**: Handles the action when the "View Details" button is clicked.
--   **`click` on `#mobile-menu-btn`**: Toggles the visibility of the sidebar on mobile devices.
--   **`click` on `document`**: Closes the mobile sidebar if a click occurs outside of it.
+## Mobile Support
+- Mobile menu toggle functionality
+- Responsive sidebar behavior
+- Touch-friendly click handlers
+
+## Initialization Sequence
+1. DOM content loaded event triggers main initialization
+2. `initializeUI()` sets up basic UI handlers
+3. `loadGoogleMapsAPI()` dynamically loads Maps API
+4. On success: `initializeMapAndFeatures()` sets up all features
+5. On failure: `initializeNonMapFeatures()` provides fallback
+
+## Notes
+- Uses event-driven architecture with DOM content loaded event
+- Maintains clear separation between map-dependent and independent features
+- Implements defensive programming with null checks and error boundaries
+- Supports both development debugging and production deployment

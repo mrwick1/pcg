@@ -193,15 +193,29 @@ button:hover {
     background-color: var(--secondary-blue);
 }
 
-#toggle-satellite-btn {
+/* Satellite toggle button */
+.satellite-toggle-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
     background-color: white;
     color: var(--primary-blue);
-    border: 1px solid var(--primary-blue);
-    margin-right: 10px;
+    border: 1px solid var(--border-gray);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    width: auto;
+    margin: 0;
 }
 
-#toggle-satellite-btn:hover {
+.satellite-toggle-btn:hover {
     background-color: var(--light-gray);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 /* Map container styles */
@@ -260,12 +274,13 @@ button:hover {
 
 /* Context menu */
 .map-context-menu {
-    position: absolute;
+    position: fixed;
     background: white;
     border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     padding: 5px 0;
-    z-index: 1000;
+    z-index: 10000;
+    min-width: 120px;
 }
 
 .menu-item {
@@ -349,8 +364,28 @@ button:hover {
     color: white !important;
 }
 
-.info-header.status-in-progress {
+.info-header.status-live {
     background: linear-gradient(135deg, #e65100 0%, #bf360c 100%);
+    color: white !important;
+}
+
+.info-header.status-archived {
+    background: linear-gradient(135deg, #616161 0%, #424242 100%);
+    color: white !important;
+}
+
+.info-header.status-cancelled {
+    background: linear-gradient(135deg, #b71c1c 0%, #d32f2f 100%);
+    color: white !important;
+}
+
+.info-header.status-suspended {
+    background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%);
+    color: white !important;
+}
+
+.info-header.status-in-progress {
+    background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%);
     color: white !important;
 }
 
@@ -359,13 +394,35 @@ button:hover {
     color: white !important;
 }
 
+.info-header.status-active {
+    background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+    color: white !important;
+}
+
+.info-header.status-permanent {
+    background: linear-gradient(135deg, #673AB7 0%, #512DA8 100%);
+    color: white !important;
+}
+
 /* Ensure all text in status headers is white */
 .info-header.status-completed .project-title h3,
+.info-header.status-live .project-title h3,
+.info-header.status-archived .project-title h3,
+.info-header.status-cancelled .project-title h3,
+.info-header.status-suspended .project-title h3,
 .info-header.status-in-progress .project-title h3,
 .info-header.status-unknown .project-title h3,
+.info-header.status-active .project-title h3,
+.info-header.status-permanent .project-title h3,
 .info-header.status-completed .project-status,
+.info-header.status-live .project-status,
+.info-header.status-archived .project-status,
+.info-header.status-cancelled .project-status,
+.info-header.status-suspended .project-status,
 .info-header.status-in-progress .project-status,
-.info-header.status-unknown .project-status {
+.info-header.status-unknown .project-status,
+.info-header.status-active .project-status,
+.info-header.status-permanent .project-status {
     color: white !important;
 }
 
@@ -812,7 +869,8 @@ button:hover {
 .google-maps-directions {
     position: absolute;
     top: 10px;
-    right: 350px; /* Position to the left of route planning panel */
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 999;
 }
 
@@ -851,7 +909,8 @@ button:hover {
     }
     
     .google-maps-directions {
-        right: 295px;
+        left: 50%;
+        transform: translateX(-50%);
         top: 5px;
     }
     
@@ -870,7 +929,8 @@ button:hover {
     }
     
     .google-maps-directions {
-        right: 10px;
+        left: 50%;
+        transform: translateX(-50%);
         top: 70px;
     }
 }
@@ -1102,14 +1162,34 @@ button:hover {
 }
 
 .project-status-badge.status-in-progress {
-    background-color: #fef3c7;
-    color: #d97706;
+    background-color: #dbeafe;
+    color: #1e40af;
 }
 
 /* Status badge styles (for small status indicators, not headers) */
 .project-status-badge.status-completed {
     background-color: #d1fae5;
     color: #059669;
+}
+
+.project-status-badge.status-live {
+    background-color: #fed7aa;
+    color: #ea580c;
+}
+
+.project-status-badge.status-archived {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+
+.project-status-badge.status-cancelled {
+    background-color: #fecaca;
+    color: #dc2626;
+}
+
+.project-status-badge.status-suspended {
+    background-color: #fef3c7;
+    color: #d97706;
 }
 
 .project-status-badge.status-unknown {

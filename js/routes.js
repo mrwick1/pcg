@@ -8,6 +8,22 @@ let routeDropdowns = {};
 let waypointCount = 0;
 let activeWaypoints = []; // Track active waypoint indices
 
+// Local copy of coordinate validation utility (in case data.js hasn't loaded yet)
+function hasValidCoordinates(location) {
+    if (!location) return false;
+    
+    // Use root-level lat/lng fields
+    const lat = location.lat;
+    const lng = location.lng;
+    
+    // Check if coordinates are valid numbers and within proper ranges
+    return lat !== null && lng !== null && 
+           !isNaN(lat) && !isNaN(lng) && 
+           lat >= -90 && lat <= 90 && 
+           lng >= -180 && lng <= 180 &&
+           lat !== 0 && lng !== 0; // Exclude default 0,0 coordinates
+}
+
 // Initialize route planning system
 function initializeRoutePlanning() {
     console.log('Initializing route planning...');
@@ -327,18 +343,20 @@ function updateRouteDropdownList(dropdownKey, options) {
 async function populateRouteDropdownOptions() {
     console.log('Populating route dropdown options...');
     try {
-        // Check if the new API functions are available
-        if (typeof fetchProjectsData !== 'function') {
-            console.log('Projects API function not available yet, will retry...');
+        // Check if IndexedDB service is available
+        if (!window.indexedDBService || typeof window.indexedDBService.getProjectsFromDB !== 'function') {
+            console.log('IndexedDB service not available yet, will retry...');
             setTimeout(populateRouteDropdownOptions, 500);
             return;
         }
         
-        // Fetch only projects data (simplified)
-        const projectsResponse = await fetchProjectsData({});
-        const projects = projectsResponse.data || [];
+        // Get projects directly from IndexedDB (no API call)
+        const projects = await window.indexedDBService.getProjectsFromDB({});
         
-        console.log('Fetched projects count:', projects.length);
+        console.log('Fetched projects from IndexedDB count:', projects.length);
+        if (projects.length > 0) {
+            console.log('Sample project data:', projects[0]);
+        }
         
         // COMMENTED OUT: Resources and billing APIs removed for simplification
         // const resourcesResponse = await fetchResourcesData({});
@@ -351,14 +369,25 @@ async function populateRouteDropdownOptions() {
 
         // Add projects (only those with valid coordinates)
         projects.forEach(project => {
+            console.log('Processing project for route dropdown:', project);
             if (project && project.projectName && project.address && hasValidCoordinates(project)) {
-                allOptions.push({
+                const option = {
                     id: project.projectNumber || project.id,
                     name: project.projectName,
                     lat: project.lat,
                     lng: project.lng,
                     type: 'project',
                     address: project.address
+                };
+                console.log('Adding project option:', option);
+                allOptions.push(option);
+            } else {
+                console.log('Project skipped - missing data or invalid coordinates:', {
+                    hasName: !!project?.projectName,
+                    hasAddress: !!project?.address,
+                    hasValidCoords: project ? hasValidCoordinates(project) : false,
+                    lat: project?.lat,
+                    lng: project?.lng
                 });
             }
         });
@@ -395,6 +424,7 @@ async function populateRouteDropdownOptions() {
         // });
 
         console.log('Total route options created:', allOptions.length);
+        console.log('All route options:', allOptions);
 
         // Populate all dropdowns with all options
         routeDropdowns.start.options = allOptions;
@@ -408,6 +438,8 @@ async function populateRouteDropdownOptions() {
         });
         
         console.log('Route dropdown options populated successfully');
+        console.log('Start dropdown options count:', routeDropdowns.start.options.length);
+        console.log('End dropdown options count:', routeDropdowns.end.options.length);
         
         // Re-setup the dropdowns now that we have data
         if (routeDropdowns.start.input && routeDropdowns.end.input) {

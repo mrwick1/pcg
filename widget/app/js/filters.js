@@ -21,7 +21,7 @@ let dropdowns = {
     projectStatus: {
         input: null,
         list: null,
-        options: ['Live', 'Completed', 'Archived', 'Cancelled', 'Suspended'],
+        options: ['Completed', 'Live', 'Archived', 'Cancelled', 'Suspended', 'In Progress'],
         selected: ''
     },
     userRole: {

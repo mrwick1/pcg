@@ -1,75 +1,269 @@
-# `map.js`
+# map.js Documentation
 
 ## Overview
-
-This file is responsible for all Google Maps functionality. It handles map initialization, adding and managing markers, displaying information windows, and loading data onto the map.
+Comprehensive Google Maps integration module providing interactive map visualization with custom markers, info windows, and context menus. Supports multiple data types (projects, resources, billing) with status-based styling and detailed information displays.
 
 ## Global Variables
+```javascript
+let map;                    // Google Maps instance
+let infoWindow;            // Shared info window for markers
+let directionsService;     // Google Directions service
+let directionsRenderer;    // Directions renderer for routes
+let contextMenu;           // Custom context menu element
+let selectedMarker = null; // Currently selected marker
+let activeMarkers = [];    // Array of all active markers
+let infoWindows = [];      // Array of info windows (deprecated)
+```
 
--   `map`: The main Google Maps map object.
--   `infoWindow`: A single `InfoWindow` object used to display details for markers.
--   `directionsService` and `directionsRenderer`: Used for calculating and displaying routes.
--   `contextMenu`: The right-click context menu for map markers.
--   `selectedMarker`: The marker that is currently selected (right-clicked).
--   `activeMarkers`: An array of all markers currently displayed on the map.
+## Core Functions
 
-## Key Functions
+### initializeMap()
+Primary map initialization function with comprehensive error handling.
 
-### `initializeMap()`
+**Features:**
+- Google Maps API availability validation
+- Dynamic map div creation if missing
+- Error handling with user-friendly fallback messages
+- Map configuration with custom styling
+- Service initialization (DirectionsService, InfoWindow)
+- UI component setup (satellite toggle, context menu)
+- Automatic data loading after initialization
 
--   **Purpose:** Initializes the Google Map and its components.
--   **Process:**
-    1.  Creates the `google.maps.Map` instance.
-    2.  Initializes the `InfoWindow`, `DirectionsService`, and `DirectionsRenderer`.
-    3.  Sets up event listeners for the map (e.g., `click`, `contextmenu`).
-    4.  Attaches a click listener to the satellite/roadmap toggle button.
-    5.  Triggers the initial data load.
+**Map Configuration:**
+```javascript
+{
+    center: { lat: 20.5937, lng: 78.9629 },  // Center of India
+    zoom: 5,
+    mapTypeControl: false,
+    streetViewControl: false,
+    mapId: 'fb4518226e59c4892eee2d21'          // Advanced markers support
+}
+```
 
-### `initMap()` (Global Callback)
+### showMapError(message)
+Displays user-friendly error messages when map initialization fails.
 
--   **Purpose:** This function is the global callback that is executed by the Google Maps API script once it has loaded. It simply calls `initializeMap()`.
+**Features:**
+- Replaces map container with styled error display
+- Includes visual indicators (map emoji)
+- Provides clear error messaging
+- Maintains responsive design
 
-### `getMarkerStyle(location, markerType)`
+## Marker Management
 
--   **Purpose:** Determines the visual style (color, icon) for a map marker based on its type (project, resource, or billing).
--   **Returns:** An object with properties for `background`, `borderColor`, and `glyph`.
+### getMarkerStyle(location, markerType)
+Determines marker appearance based on type and status.
 
-### `addMarkerToMap(location, markerType)`
+**Project Status Colors:**
+- **Completed**: `#4CAF50` (Green)
+- **Live**: `#FF9800` (Orange)  
+- **Archived**: `#9E9E9E` (Gray)
+- **Cancelled**: `#F44336` (Red)
+- **Suspended**: `#FFC107` (Amber/Yellow)
+- **In Progress**: `#2196F3` (Blue)
+- **Unknown**: `#424242` (Dark gray)
 
--   **Purpose:** Creates and adds a single marker to the map.
--   **Process:**
-    1.  Creates a `PinElement` for a custom marker appearance.
-    2.  Creates an `AdvancedMarkerElement` with the specified position, style, and title.
-    3.  Attaches a `gmp-click` listener to the marker to show a detailed, styled `InfoWindow` with comprehensive information about the location.
-    4.  Attaches a `contextmenu` listener to show a custom context menu.
-    5.  Adds the marker to the `activeMarkers` array.
+**Marker Types:**
+- **Project (P)**: Status-based colors with 'P' glyph
+- **Resource (R)**: `#9C27B0` (Purple) with 'R' glyph
+- **Billing (B)**: `#FF9800` (Orange) with 'B' glyph
 
-### `clearAllMarkers()`
+### addMarkerToMap(location, markerType = 'project')
+Creates and adds custom markers to the map with advanced features.
 
--   **Purpose:** Removes all currently displayed markers from the map.
+**Features:**
+- Advanced marker elements with custom styling
+- Dynamic title generation based on marker type
+- Click event handling for info windows
+- Context menu support with right-click
+- Coordinate validation and parsing
+- Comprehensive error handling
 
-### `loadAndDisplayData(filters, changedFilter)`
+**Info Window Content:**
+Detailed information displays with:
+- Styled headers with status indicators
+- Structured data presentation
+- Action buttons (directions, view details)
+- Responsive design for mobile devices
 
--   **Purpose:** Fetches data based on the provided filters and displays it on the map.
--   **Process:**
-    1.  Clears any existing markers.
-    2.  Fetches project data using the `getProjectsData` function.
-    3.  Iterates through the data and adds a marker for each location that has valid coordinates.
-    4.  Adjusts the map's zoom and center to fit the displayed markers, with special handling for zooming to a single selected project.
+### clearAllMarkers()
+Removes all markers from the map and clears the markers array.
 
-### `handleViewDetails()`
+## Data Loading and Display
 
--   **Purpose:** Handles the "View Details" action from the context menu, displaying the `InfoWindow` for the `selectedMarker`.
+### loadAndDisplayData(filters = {}, changedFilter = null)
+Main function for loading and displaying filtered data on the map.
 
-### `viewProjectSummary(projectId)`
+**Process Flow:**
+1. Validates Google Maps availability
+2. Clears existing markers
+3. Fetches data from multiple sources (projects, resources)
+4. Filters data based on coordinates validity
+5. Creates markers for valid locations
+6. Implements intelligent zoom behavior
+7. Handles empty result scenarios
 
--   **Purpose:** Displays a modal with a detailed summary of a selected project.
--   **Process:**
-    1.  Finds the corresponding project marker in the `activeMarkers` array.
-    2.  Constructs an HTML summary of the project's details.
-    3.  Populates and displays a modal dialog with the summary.
+**Data Sources:**
+- **Projects**: `getProjectsData()` with filtering support
+- **Resources**: `getResourcesData()` with filtering support
+- **Billing**: Currently commented out for simplification
 
-## Global Functions
+**Smart Zoom Behavior:**
+- **Single Project Selection**: Zoom to level 15
+- **Multiple Markers**: Fit bounds to show all markers
+- **Single Marker**: Zoom to level 10
+- **Role-based Selection**: Focus on specific resource roles
 
--   **`window.viewProjectSummary(projectId)`**: A globally exposed function to allow the info window's button to trigger the summary modal.
--   **`window.openDirections(lat, lng, locationName)`**: A globally exposed function to open Google Maps directions in a new tab.
+## Info Window System
+
+### Project Info Windows
+Comprehensive project information display:
+
+```javascript
+{
+    header: "Project icon + name + status badge",
+    content: {
+        pccNumber: "Project identification",
+        projectType: "Report type information", 
+        accountName: "Client information",
+        claimNumber: "Insurance claim details",
+        contactName: "Primary contact",
+        insurer: "Insurance company",
+        address: "Physical location",
+        dateOfLoss: "Incident date (optional)"
+    },
+    actions: [
+        "Get Directions button",
+        "View Summary button"
+    ]
+}
+```
+
+### Resource Info Windows
+Employee/resource information display:
+
+```javascript
+{
+    header: "Resource icon + name + status",
+    content: {
+        employeeId: "Employee identification",
+        role: "Job role/position",
+        employeeType: "Employment classification",
+        personalEmail: "Contact email (optional)",
+        phoneNumber: "Contact phone (optional)",
+        paymentType: "Payment classification (optional)",
+        address: "Employee address"
+    },
+    actions: [
+        "Get Directions button",
+        "View Profile button"
+    ]
+}
+```
+
+## Context Menu System
+
+### Context Menu Features
+- Right-click activation on markers
+- Intelligent positioning to stay within viewport
+- Auto-close on outside clicks
+- Viewport boundary detection and adjustment
+
+### Context Menu Actions
+- **View Details**: Opens detailed info window
+- **Get Directions**: Opens Google Maps directions
+- **Additional Actions**: Configurable based on marker type
+
+## User Interaction
+
+### Event Handlers
+- **Map Click**: Closes context menus and info windows
+- **Map Context Menu**: Prevents default browser context menu
+- **Marker Click**: Opens info window with details
+- **Marker Right-Click**: Shows custom context menu
+- **Satellite Toggle**: Switches between roadmap and satellite views
+
+### Action Functions
+
+#### openDirections(lat, lng, name)
+Opens Google Maps in new tab with directions to specified coordinates.
+
+#### viewProjectSummary(projectId)
+Displays comprehensive project summary in modal dialog:
+- Project overview with status styling
+- Client information section
+- Location and timeline details
+- Coordinate display
+- Modal interaction handling
+
+## Global Window Functions
+Exported functions for global access:
+- `window.viewProjectSummary(projectId)`
+- `window.openDirections(lat, lng, locationName)`
+
+## Error Handling
+
+### Map Initialization Errors
+- API key validation
+- Network connectivity issues
+- Browser compatibility problems
+- Graceful fallback to error display
+
+### Data Loading Errors
+- API call failures
+- Invalid coordinate data
+- Network timeouts
+- Empty dataset handling
+
+### User Experience
+- Loading state management
+- No-data scenarios with user guidance
+- Auto-removal of temporary messages
+- Comprehensive error logging
+
+## Styling and CSS
+
+### Info Window Styling
+Injected CSS for consistent info window appearance:
+```css
+.info-window {
+    padding: 12px;
+    max-width: 300px;
+    font-family: Arial, sans-serif;
+}
+```
+
+### Status-based Styling
+Dynamic CSS classes for project status indicators:
+- `.status-completed`, `.status-live`, `.status-archived`, etc.
+- Consistent color scheme across UI elements
+- Mobile-responsive design considerations
+
+## Dependencies
+- **Google Maps JavaScript API**: Core mapping functionality
+- **data.js**: `hasValidCoordinates()` validation function
+- **zohoApiService.js**: Data fetching functions
+- **filters.js**: Filter management integration
+
+## Global Callbacks
+- **`window.initMap`**: Google Maps API callback function
+
+## Performance Optimizations
+- Efficient marker management with array tracking
+- Conditional map recreation only when necessary
+- Optimized data filtering before marker creation
+- Memory management for large datasets
+- Debounced UI updates for smooth interaction
+
+## Mobile Support
+- Touch-friendly marker interaction
+- Responsive info window layouts
+- Mobile-optimized context menu positioning
+- Gesture support for map navigation
+
+## Notes
+- Designed for 6000+ location datasets
+- Supports both online and offline marker display
+- Implements Google Maps best practices
+- Provides comprehensive debugging and error logging
+- Maintains consistent UX across different data types

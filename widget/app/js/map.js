@@ -115,15 +115,37 @@ window.initMap = () => {
 };
 
 function getMarkerStyle(location, markerType) {
-    // Define marker styles for different types - single color per type
+    // For project markers, use status-based colors
+    if (markerType === 'project' && location.status) {
+        const statusColors = {
+            'Completed': '#4CAF50',      // Green
+            'Live': '#FF9800',           // Orange  
+            'Archived': '#9E9E9E',       // Gray
+            'Cancelled': '#F44336',      // Red
+            'Suspended': '#FFC107',      // Amber/Yellow
+            'In Progress': '#2196F3',    // Blue
+            'Unknown': '#424242'         // Dark gray
+        };
+        
+        const statusColor = statusColors[location.status] || statusColors['Unknown'];
+        
+        return {
+            background: statusColor,
+            borderColor: '#FFFFFF',
+            glyph: 'P',
+            glyphColor: '#FFFFFF'
+        };
+    }
+    
+    // Define marker styles for different types - single color per type (non-project markers)
     const markerStyles = {
         project: {
-            background: '#4CAF50',    // Green for all Project markers
+            background: '#4CAF50',    // Green for Project markers (fallback)
             glyph: 'P',
             borderColor: '#FFFFFF'
         },
         resource: {
-            background: '#2196F3',    // Blue for all Resource markers
+            background: '#9C27B0',    // Purple for all Resource markers
             glyph: 'R',
             borderColor: '#FFFFFF'
         },
@@ -177,8 +199,8 @@ function addMarkerToMap(location, markerType = 'project') {
     if (markerType === 'project') {
         title = location.projectName || 'Unknown Project';
     } else if (markerType === 'resource') {
-        const fullName = `${location.resource?.employeeName?.firstName || ''} ${location.resource?.employeeName?.lastName || ''}`.trim();
-        title = fullName || 'Unknown Employee';
+        // Resource data is stored directly in the location object
+        title = location.fullName || `${location.firstName || ''} ${location.lastName || ''}`.trim() || 'Unknown Employee';
     } else if (markerType === 'billing') {
         title = location.billing?.resourceName || 'Unknown Resource';
     }
@@ -286,17 +308,84 @@ function addMarkerToMap(location, markerType = 'project') {
                 </div>
             `;
         } else if (markerType === 'resource') {
-            const fullName = `${location.resource?.employeeName?.firstName || ''} ${location.resource?.employeeName?.lastName || ''}`.trim();
-            const resourceAddress = `${location.resource?.addresses?.permanent?.addressLine1 || ''}, ${location.resource?.addresses?.permanent?.city || ''}, ${location.resource?.addresses?.permanent?.state || ''}`.replace(/^,\s*|,\s*$/g, '');
+            // Resource data is stored directly in the location object
+            const fullName = location.fullName || `${location.firstName || ''} ${location.lastName || ''}`.trim();
+            const resourceAddress = location.address || 'Address not available';
+            const employeeId = location.employeeId || location.id || 'N/A';
+            const role = location.role || 'N/A';
+            const employeeType = location.employeeType || 'N/A';
+            const status = location.status || 'N/A';
+            const personalEmail = location.personalEmail || 'N/A';
+            const phoneNumber = location.phoneNumber || 'N/A';
+            const paymentType = location.paymentType || 'N/A';
+            
+            const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+            
             content = `
-                <div class="info-window">
-                    <h3>${fullName || 'Unknown Employee'}</h3>
-                    <p><strong>Type:</strong> Resource</p>
-                    <p><strong>Employee ID:</strong> ${location.resource?.employeeId || 'N/A'}</p>
-                    <p><strong>Role:</strong> ${location.resource?.userRole || 'N/A'}</p>
-                    <p><strong>Employee Type:</strong> ${location.resource?.employeeType || 'N/A'}</p>
-                    <p><strong>Status:</strong> ${location.resource?.status || 'N/A'}</p>
-                    <p><strong>Address:</strong> ${resourceAddress || 'Address not available'}</p>
+                <div class="project-info-window">
+                    <div class="info-header status-${statusClass}">
+                        <div class="project-icon">
+                            <span class="icon-text">R</span>
+                        </div>
+                        <div class="project-title">
+                            <h3>${fullName || 'Unknown Employee'}</h3>
+                            <span class="project-status status-${statusClass}">${status}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-content">
+                        <div class="info-row">
+                            <span class="info-label">Employee ID:</span>
+                            <span class="info-value">${employeeId}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Role:</span>
+                            <span class="info-value">${role}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Employee Type:</span>
+                            <span class="info-value">${employeeType}</span>
+                        </div>
+                        
+                        ${personalEmail !== 'N/A' ? `
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value">${personalEmail}</span>
+                        </div>
+                        ` : ''}
+                        
+                        ${phoneNumber !== 'N/A' ? `
+                        <div class="info-row">
+                            <span class="info-label">Phone:</span>
+                            <span class="info-value">${phoneNumber}</span>
+                        </div>
+                        ` : ''}
+                        
+                        ${paymentType !== 'N/A' ? `
+                        <div class="info-row">
+                            <span class="info-label">Payment Type:</span>
+                            <span class="info-value">${paymentType}</span>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="info-row address-row">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value">${resourceAddress}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-actions">
+                        <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, '${fullName.replace(/'/g, "\\'")}')">
+                            <span class="btn-icon">📍</span>
+                            Get Directions
+                        </button>
+                        <button class="action-btn secondary" onclick="viewResourceSummary('${location.id || employeeId}')">
+                            <span class="btn-icon">👤</span>
+                            View Profile
+                        </button>
+                    </div>
                 </div>
             `;
         } else if (markerType === 'billing') {
@@ -322,30 +411,41 @@ function addMarkerToMap(location, markerType = 'project') {
         e.preventDefault();
         e.stopPropagation();
         
-        
+        console.log('Right-click detected on marker:', marker.markerType);
         selectedMarker = marker;
+        
         if (contextMenu) {
-            const scale = 2 ** map.getZoom();
-            const nw = new google.maps.LatLng(
-                map.getBounds().getNorthEast().lat(),
-                map.getBounds().getSouthWest().lng()
-            );
-            const worldCoordinateNW = map.getProjection().fromLatLngToPoint(nw);
-            const worldCoordinate = map.getProjection().fromLatLngToPoint(marker.position);
-            const pixelOffset = new google.maps.Point(
-                Math.floor((worldCoordinate.x - worldCoordinateNW.x) * scale),
-                Math.floor((worldCoordinate.y - worldCoordinateNW.y) * scale)
-            );
-
-            const mapContainer = map.getDiv();
-            const rect = mapContainer.getBoundingClientRect();
-
-            const x = rect.left + pixelOffset.x;
-            const y = rect.top + pixelOffset.y;
-
+            // Simple approach: use the mouse event coordinates
+            const x = e.domEvent ? e.domEvent.clientX : window.event.clientX;
+            const y = e.domEvent ? e.domEvent.clientY : window.event.clientY;
+            
+            console.log('Context menu position:', {x, y});
+            
+            // Ensure the context menu stays within viewport
+            const menuWidth = 120;
+            const menuHeight = 40;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let finalX = x + 10; // Small offset to the right
+            let finalY = y - 10; // Small offset above
+            
+            // Adjust if menu would go off-screen
+            if (finalX + menuWidth > viewportWidth) {
+                finalX = x - menuWidth - 10; // Place to the left
+            }
+            if (finalY + menuHeight > viewportHeight) {
+                finalY = y - menuHeight;
+            }
+            if (finalY < 0) {
+                finalY = y + 30; // Place below
+            }
+            
             contextMenu.style.display = 'block';
-            contextMenu.style.left = `${x}px`;
-            contextMenu.style.top = `${y}px`;
+            contextMenu.style.left = `${finalX}px`;
+            contextMenu.style.top = `${finalY}px`;
+            
+            console.log('Context menu positioned at:', {finalX, finalY});
 
             setTimeout(() => {
                 const closeContextMenu = (event) => {
@@ -402,8 +502,7 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
         // Show loading state (simplified - just console log)
         console.log('🔄 Loading data from Zoho Creator...');
         
-        // Fetch from three separate APIs independently
-        // Simplified: Only fetch projects data
+        // Fetch from separate APIs independently
         const projectLocations = await getProjectsData({
             projectNumber: filters.pccNumber,
             reportType: filters.projectType,
@@ -411,9 +510,18 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
             status: filters.project_status
         });
         
-        // COMMENTED OUT: Resources and billing removed for simplification
-        // const resourcesResponse = await fetchResourcesData({
-        //     userRole: filters.userRole,
+        // Fetch resources data
+        console.log('🔄 Fetching resources data...');
+        const resourcesResponse = await getResourcesData({
+            role: filters.userRole,
+            employeeType: filters.employeeType,
+            status: filters.resourceStatus
+        });
+        
+        console.log('📋 Resources response:', resourcesResponse);
+        
+        // COMMENTED OUT: Billing removed for simplification  
+        // const billingResponse = await fetchBillingData({
         //     employeeType: filters.employeeType,
         //     status: filters.status
         // });
@@ -431,12 +539,18 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
             }
         }
         
-        // COMMENTED OUT: Resource and billing markers removed for simplification
-        // // Add resource location markers (R)
-        // for (const location of resourceLocations) {
-        //     addMarkerToMap(location, 'resource');
-        // }
-        // 
+        // Add resource location markers (R) - only for resources with valid coordinates
+        const resourceLocations = resourcesResponse.data || [];
+        console.log(`📍 Adding ${resourceLocations.length} resource markers to map`);
+        for (const location of resourceLocations) {
+            if (hasValidCoordinates(location)) {
+                addMarkerToMap(location, 'resource');
+            } else {
+                console.log('⚠️ Resource skipped - no valid coordinates:', location);
+            }
+        }
+        
+        // COMMENTED OUT: Billing markers removed for simplification
         // // Add billing location markers (B)
         // for (const location of billingLocations) {
         //     addMarkerToMap(location, 'billing');
