@@ -13,7 +13,7 @@ Central configuration object containing filter dropdown definitions:
     projectSearch: { input, list, options: [], selected: '' },
     projectType: { input, list, options: [], selected: '' },
     accountName: { input, list, options: [], selected: '' },
-    projectStatus: { input, list, options: ['Completed', 'Live', 'Archived', 'Cancelled', 'Suspended', 'In Progress'], selected: '' },
+    projectStatus: { input, list, options: ['Completed', 'Live', 'Archived', 'Cancelled', 'Suspended'], selected: '' },
     userRole: { input, list, options: [], selected: '' },
     employeeType: { input, list, options: ['Full Time', 'Contract'], selected: '' },
     resourceStatus: { input, list, options: ['Active', 'Inactive', 'On Bench'], selected: '' },

@@ -1,14 +1,15 @@
 # zohoApiService.js Documentation
 
 ## Overview
-Comprehensive Zoho Creator API service providing data integration for PCG application. Implements functional approach with pagination support, IndexedDB caching, mock data fallbacks, and dual API coverage for both projects and customer data.
+Comprehensive Zoho Creator API service providing data integration for PCG application. Implements functional approach with pagination support, IndexedDB caching, mock data fallbacks, and comprehensive API coverage for projects, customer/resources, and billing location data.
 
 ## Global Configuration
 ```javascript
 const ZOHO_CONFIG = {
     appName: 'pemo',
     projectsReportName: 'All_Projects',
-    customersReportName: 'All_Customers'
+    customersReportName: 'All_Customers',
+    billingReportName: 'All_Billing_Locations'
 };
 ```
 
@@ -35,6 +36,7 @@ Comprehensive API initialization with testing and validation.
 ```javascript
 let ongoingAPIRequest = null;           // Projects API request tracking
 let ongoingResourcesAPIRequest = null;  // Resources API request tracking
+let ongoingBillingAPIRequest = null;    // Billing API request tracking
 ```
 
 Prevents multiple simultaneous API calls to the same endpoint, ensuring efficient resource usage and avoiding race conditions.
@@ -75,8 +77,21 @@ Intelligent cursor extraction supporting multiple Zoho API response formats.
 - `response.pagination.cursor`
 - `response.pagination.record_cursor`
 
+### determineProjectStatus(project)
+Calculates project status based on business logic conditions requiring location validation.
+
+**Status Calculation Logic:**
+All project statuses require valid location data (address, latitude, longitude not empty).
+
+1. **Completed**: Project_Completed = true + valid location
+2. **Cancelled**: PS_5.Project_Cancelled = true + PS_5.Project_Cancelled_Date not empty + valid location
+3. **Suspended**: PS_5.Project_Suspended not empty + transmitted empty + released empty + valid location
+4. **Archived**: PS_5.Transmitted_Report_and_Invoice_to_the_Client not empty + not cancelled + valid location
+5. **Live**: All PS_5 fields empty/false + valid location
+6. **Unknown**: Fallback when no conditions match
+
 ### processProjectData(rawProjects)
-Transforms raw Zoho Creator data into standardized application format.
+Transforms raw Zoho Creator data into standardized application format with calculated status.
 
 **Field Mapping:**
 ```javascript
@@ -89,14 +104,21 @@ Transforms raw Zoho Creator data into standardized application format.
     claimNumber: project.Claim_Number,
     contactName: project.Contact_Name,
     address: project.Loss_Location_Street_Address,
-    status: project["PS_5.Completion_Status"],
+    status: determineProjectStatus(project), // Calculated based on business logic
     dateOfLoss: project.Date_of_Loss,
     insurer: project.Insurer,
     policyNumber: project.Policy_Number,
     completed: project.Project_Completed === 'true',
     lat: parseFloat(project.Latitude),
     lng: parseFloat(project.Longitude),
-    lastUpdated: Date.now()
+    lastUpdated: Date.now(),
+    ps5Data: {
+        transmittedToClient: project["PS_5.Transmitted_Report_and_Invoice_to_the_Client"],
+        projectCancelled: project["PS_5.Project_Cancelled"],
+        projectCancelledDate: project["PS_5.Project_Cancelled_Date"],
+        projectSuspended: project["PS_5.Project_Suspended"],
+        suspendedReleasedOn: project["PS_5.Suspended_Projects_Released_On"]
+    }
 }
 ```
 
@@ -172,6 +194,48 @@ Main customers data retrieval with IndexedDB integration.
 - Filtered retrieval from IndexedDB
 - Comprehensive error handling
 
+## Billing Locations Data API
+
+### fetchAllBillingData()
+Pagination-enabled data fetching for All_Billing_Locations report.
+
+**Similar Architecture to Projects:**
+- 1000 records per page
+- Cursor-based pagination
+- Multi-API method support
+- Mock data fallback
+
+### processBillingData(rawBilling)
+Transforms raw billing location data into application-ready format.
+
+**Field Mapping:**
+```javascript
+{
+    id: billing.ID,
+    codeId: billing.Code_ID,
+    status: billing.Status,
+    population: billing.Population,
+    address: billing.Address?.zc_display_value || '',
+    lat: parseFloat(billing.Latitude || billing.Address?.latitude),
+    lng: parseFloat(billing.Longitude || billing.Address?.longitude),
+    lastUpdated: Date.now()
+}
+```
+
+**Coordinate Processing:**
+- Supports both root-level coordinates and Address object coordinates
+- Validates and converts to numbers with null fallback
+- Comprehensive coordinate statistics logging
+
+### getBillingData(filters = {})
+Main billing data retrieval with IndexedDB integration.
+
+**Identical Pattern to Projects and Resources:**
+- Sync checking and deduplication
+- API fetching with storage
+- Filtered retrieval from IndexedDB
+- Comprehensive error handling
+
 ## Mock Data System
 
 ### getMockProjectsData()
@@ -179,9 +243,10 @@ Comprehensive mock data for development and testing.
 
 **Mock Data Features:**
 - 6 sample projects covering all status types
-- Realistic project numbers, names, and addresses
-- Complete field coverage for testing
-- Status variety: In Progress, Completed, Live, Archived, Cancelled, Suspended
+- Realistic project numbers, names, and addresses with coordinates
+- Complete field coverage for testing including PS_5 data
+- Status variety: Completed, Live, Archived, Cancelled, Suspended
+- All mock data includes valid location data (address, latitude, longitude)
 
 ### getMockCustomersData()
 Mock customer/resource data for development.
@@ -191,6 +256,15 @@ Mock customer/resource data for development.
 - Address variations (permanent/temporary)
 - Role and employment type diversity
 - Status variety for comprehensive testing
+
+### getMockBillingData()
+Mock billing location data for development.
+
+**Mock Features:**
+- Billing location codes and status variety
+- Population data for different areas
+- Address structures with embedded coordinates
+- Active/Inactive status for comprehensive testing
 
 ## Response Processing
 
@@ -222,6 +296,10 @@ response.result = [...]
 - `status`: Employee status matching
 - `employeeType`: Employment type matching
 - `name`: Full name substring search
+
+### Billing Filtering
+- `status`: Location status matching
+- `codeId`: Code ID substring matching
 
 ## Debug and Testing Functions
 
@@ -260,6 +338,13 @@ Complete resources API testing including:
 - Database statistics
 - Full workflow verification
 
+### window.testBillingAPI()
+Comprehensive billing locations API testing:
+- API call verification
+- Data structure validation
+- Record count verification
+- Error handling testing
+
 ## Global Exports
 
 ### Main Functions
@@ -270,6 +355,8 @@ window.fetchResourcesData = getCustomersData;
 window.getResourcesData = getCustomersData;
 window.fetchCustomersData = getCustomersData;
 window.getCustomersData = getCustomersData;
+window.fetchBillingData = getBillingData;
+window.getBillingData = getBillingData;
 ```
 
 ### Backward Compatibility

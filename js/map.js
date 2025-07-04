@@ -26,11 +26,9 @@ function showMapError(message) {
 
 // Initialize Google Maps
 function initializeMap() {
-    console.log('initializeMap() called');
     
     // Check if Google Maps API is available
     if (typeof google === 'undefined' || !google.maps) {
-        console.error('Google Maps API not available');
         showMapError('Google Maps API not loaded. Please check your internet connection.');
         return;
     }
@@ -38,7 +36,6 @@ function initializeMap() {
     // Don't clear the entire map container, just ensure the map div exists
     let actualMapDiv = document.getElementById('map');
     if (!actualMapDiv) {
-        console.log('Creating map div element');
         actualMapDiv = document.createElement('div');
         actualMapDiv.id = 'map';
         actualMapDiv.style.width = '100%';
@@ -47,12 +44,10 @@ function initializeMap() {
         if (mapContainer) {
             mapContainer.appendChild(actualMapDiv);
         } else {
-            console.error('map-container element not found!');
             return;
         }
     }
 
-    console.log('Creating new Google Maps instance');
     try {
         map = new google.maps.Map(document.getElementById("map"), {
             center: { lat: 20.5937, lng: 78.9629 },
@@ -61,9 +56,7 @@ function initializeMap() {
             streetViewControl: false,
             mapId: 'fb4518226e59c4892eee2d21'
         });
-        console.log('Google Maps initialized successfully');
     } catch (error) {
-        console.error('Error initializing Google Maps:', error);
         showMapError('Failed to initialize Google Maps. API key may be invalid.');
         return;
     }
@@ -97,7 +90,6 @@ function initializeMap() {
         e.preventDefault();
     });
 
-    console.log('Map components initialized successfully');
     
     // Load and display data
     setTimeout(() => {
@@ -110,37 +102,14 @@ function initializeMap() {
 
 // Global callback for Google Maps API
 window.initMap = () => {
-    console.log('Google Maps API available, initializing map');
     initializeMap();
 };
 
 function getMarkerStyle(location, markerType) {
-    // For project markers, use status-based colors
-    if (markerType === 'project' && location.status) {
-        const statusColors = {
-            'Completed': '#4CAF50',      // Green
-            'Live': '#FF9800',           // Orange  
-            'Archived': '#9E9E9E',       // Gray
-            'Cancelled': '#F44336',      // Red
-            'Suspended': '#FFC107',      // Amber/Yellow
-            'In Progress': '#2196F3',    // Blue
-            'Unknown': '#424242'         // Dark gray
-        };
-        
-        const statusColor = statusColors[location.status] || statusColors['Unknown'];
-        
-        return {
-            background: statusColor,
-            borderColor: '#FFFFFF',
-            glyph: 'P',
-            glyphColor: '#FFFFFF'
-        };
-    }
-    
-    // Define marker styles for different types - single color per type (non-project markers)
+    // Define marker styles for different types - single color per type
     const markerStyles = {
         project: {
-            background: '#4CAF50',    // Green for Project markers (fallback)
+            background: '#4CAF50',    // Green for all Project markers (regardless of status)
             glyph: 'P',
             borderColor: '#FFFFFF'
         },
@@ -202,7 +171,7 @@ function addMarkerToMap(location, markerType = 'project') {
         // Resource data is stored directly in the location object
         title = location.fullName || `${location.firstName || ''} ${location.lastName || ''}`.trim() || 'Unknown Employee';
     } else if (markerType === 'billing') {
-        title = location.billing?.resourceName || 'Unknown Resource';
+        title = `Billing Location ${location.codeId || 'Unknown'}`;
     }
 
     const marker = new google.maps.marker.AdvancedMarkerElement({
@@ -216,12 +185,6 @@ function addMarkerToMap(location, markerType = 'project') {
     marker.markerType = markerType;
 
     marker.addEventListener('gmp-click', (event) => {
-        
-        // Debug: Log the actual location object structure
-        console.log('🔍 DEBUG: Marker clicked, markerType:', markerType);
-        console.log('🔍 DEBUG: Location object:', location);
-        console.log('🔍 DEBUG: Location keys:', Object.keys(location));
-        
         // Show info window
         let content = '';
         if (markerType === 'project') {
@@ -381,22 +344,56 @@ function addMarkerToMap(location, markerType = 'project') {
                             <span class="btn-icon">📍</span>
                             Get Directions
                         </button>
-                        <button class="action-btn secondary" onclick="viewResourceSummary('${location.id || employeeId}')">
-                            <span class="btn-icon">👤</span>
-                            View Profile
-                        </button>
                     </div>
                 </div>
             `;
         } else if (markerType === 'billing') {
+            const codeId = location.codeId || 'N/A';
+            const status = location.status || 'N/A';
+            const population = location.population || 'N/A';
+            const address = location.address || 'Address not available';
+            const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+            
             content = `
-                <div class="info-window">
-                    <h3>${location.billing?.resourceName || 'Unknown Resource'}</h3>
-                    <p><strong>Type:</strong> Billing</p>
-                    <p><strong>PCC Number:</strong> ${location.billing?.projectPccNumber || 'N/A'}</p>
-                    <p><strong>Claim Number:</strong> ${location.billing?.claimNumber || 'N/A'}</p>
-                    <p><strong>Payment Type:</strong> ${location.billing?.paymentType || 'N/A'}</p>
-                    <p><strong>Billing Status:</strong> ${location.billing?.billingStatus || 'N/A'}</p>
+                <div class="project-info-window">
+                    <div class="info-header">
+                        <div class="project-icon billing-icon">
+                            <span class="icon-text">B</span>
+                        </div>
+                        <div class="project-title">
+                            <h3>Billing Location ${codeId}</h3>
+                            <span class="project-status status-${statusClass}">${status === 'false' ? 'Inactive' : status}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-content">
+                        <div class="info-row">
+                            <span class="info-label">Code ID:</span>
+                            <span class="info-value">${codeId}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Population:</span>
+                            <span class="info-value">${Number(population).toLocaleString()}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value">${status === 'false' ? 'Inactive' : 'Active'}</span>
+                        </div>
+                        
+                        <div class="info-row address-row">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value">${address}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-actions">
+                        <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, 'Billing Location ${codeId.replace(/'/g, "\\'")}')">
+                            <span class="btn-icon">📍</span>
+                            Get Directions
+                        </button>
+                    </div>
                 </div>
             `;
         }
@@ -411,7 +408,6 @@ function addMarkerToMap(location, markerType = 'project') {
         e.preventDefault();
         e.stopPropagation();
         
-        console.log('Right-click detected on marker:', marker.markerType);
         selectedMarker = marker;
         
         if (contextMenu) {
@@ -419,7 +415,6 @@ function addMarkerToMap(location, markerType = 'project') {
             const x = e.domEvent ? e.domEvent.clientX : window.event.clientX;
             const y = e.domEvent ? e.domEvent.clientY : window.event.clientY;
             
-            console.log('Context menu position:', {x, y});
             
             // Ensure the context menu stays within viewport
             const menuWidth = 120;
@@ -445,7 +440,6 @@ function addMarkerToMap(location, markerType = 'project') {
             contextMenu.style.left = `${finalX}px`;
             contextMenu.style.top = `${finalY}px`;
             
-            console.log('Context menu positioned at:', {finalX, finalY});
 
             setTimeout(() => {
                 const closeContextMenu = (event) => {
@@ -499,8 +493,6 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
     }
 
     try {
-        // Show loading state (simplified - just console log)
-        console.log('🔄 Loading data from Zoho Creator...');
         
         // Fetch from separate APIs independently
         const projectLocations = await getProjectsData({
@@ -510,27 +502,18 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
             status: filters.project_status
         });
         
-        // Fetch resources data
-        console.log('🔄 Fetching resources data...');
         const resourcesResponse = await getResourcesData({
             role: filters.userRole,
             employeeType: filters.employeeType,
             status: filters.resourceStatus
         });
         
-        console.log('📋 Resources response:', resourcesResponse);
         
-        // COMMENTED OUT: Billing removed for simplification  
-        // const billingResponse = await fetchBillingData({
-        //     employeeType: filters.employeeType,
-        //     status: filters.status
-        // });
-        // const billingResponse = await fetchBillingData({
-        //     billingStatus: filters.billingStatus,
-        //     paymentType: filters.paymentType
-        // });
-        // const resourceLocations = resourcesResponse.data;
-        // const billingLocations = billingResponse.data;
+        const billingResponse = await getBillingData({
+            status: filters.billingStatus,
+            paymentType: filters.paymentType
+        });
+        const billingLocations = billingResponse.data || [];
 
         // Add project markers (P) - only for projects with valid coordinates
         for (const location of projectLocations) {
@@ -541,20 +524,35 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
         
         // Add resource location markers (R) - only for resources with valid coordinates
         const resourceLocations = resourcesResponse.data || [];
-        console.log(`📍 Adding ${resourceLocations.length} resource markers to map`);
+        
+        
+        let addedCount = 0;
+        let skippedCount = 0;
+        
         for (const location of resourceLocations) {
             if (hasValidCoordinates(location)) {
                 addMarkerToMap(location, 'resource');
+                addedCount++;
             } else {
-                console.log('⚠️ Resource skipped - no valid coordinates:', location);
+                skippedCount++;
             }
         }
         
-        // COMMENTED OUT: Billing markers removed for simplification
-        // // Add billing location markers (B)
-        // for (const location of billingLocations) {
-        //     addMarkerToMap(location, 'billing');
-        // }
+        
+        // Add billing location markers (B) - only for billing with valid coordinates
+        let billingAddedCount = 0;
+        let billingSkippedCount = 0;
+        
+        for (const location of billingLocations) {
+            if (hasValidCoordinates(location)) {
+                addMarkerToMap(location, 'billing');
+                billingAddedCount++;
+            } else {
+                billingSkippedCount++;
+            }
+        }
+        
+        console.log(`Billing markers: ${billingAddedCount} added, ${billingSkippedCount} skipped (no coordinates)`);
             
         if (activeMarkers.length > 0 && google && google.maps) {
             // Handle specific zoom cases for project and resource selection
@@ -565,6 +563,24 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
                 );
                 if (projectMarker) {
                     map.setCenter(projectMarker.position);
+                    map.setZoom(15);
+                }
+            } else if (changedFilter === 'resourceSearch' && filters.resourceSearch) {
+                // Zoom to specific resource
+                const resourceMarker = activeMarkers.find(marker => 
+                    marker.markerType === 'resource' && marker.location.id === filters.resourceSearch
+                );
+                if (resourceMarker) {
+                    map.setCenter(resourceMarker.position);
+                    map.setZoom(15);
+                }
+            } else if (changedFilter === 'billingSearch' && filters.billingSearch) {
+                // Zoom to specific billing location
+                const billingMarker = activeMarkers.find(marker => 
+                    marker.markerType === 'billing' && marker.location.id === filters.billingSearch
+                );
+                if (billingMarker) {
+                    map.setCenter(billingMarker.position);
                     map.setZoom(15);
                 }
             } else if (changedFilter === 'userRole' && filters.userRole) {
@@ -593,11 +609,8 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
             }
         }
         
-        // Hide loading state
-        console.log('✅ Data loading complete');
         
         if (projectLocations.length === 0 && resourceLocations.length === 0 && billingLocations.length === 0) {
-            console.log("No locations to display for the current filters.");
             
             // Show a message when no data is found
             const mapContainer = document.getElementById('map-container');
@@ -627,11 +640,7 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
             }
         }
     } catch (error) {
-        console.error("Error fetching or displaying data:", error);
         
-        // Hide loading state and show error
-        console.log('✅ Data loading complete');
-        console.error('❌ Data loading error:', error);
     }
 }
 
@@ -724,23 +733,130 @@ function handleViewDetails() {
                 </div>
             `;
         } else if (markerType === 'resource') {
-            const fullName = `${location.resource?.employeeName?.firstName || ''} ${location.resource?.employeeName?.lastName || ''}`.trim();
-            const resourceAddress = `${location.resource?.addresses?.permanent?.addressLine1 || ''}, ${location.resource?.addresses?.permanent?.city || ''}, ${location.resource?.addresses?.permanent?.state || ''}`.replace(/^,\s*|,\s*$/g, '');
+            // Use the same data structure as the regular click handler
+            const fullName = location.fullName || `${location.firstName || ''} ${location.lastName || ''}`.trim();
+            const resourceAddress = location.address || 'Address not available';
+            const employeeId = location.employeeId || location.id || 'N/A';
+            const role = location.role || 'N/A';
+            const employeeType = location.employeeType || 'N/A';
+            const status = location.status || 'N/A';
+            const personalEmail = location.personalEmail || 'N/A';
+            const phoneNumber = location.phoneNumber || 'N/A';
+            const paymentType = location.paymentType || 'N/A';
+            
+            const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+            
             content = `
-                <h3>${fullName || 'Unknown Employee'}</h3>
-                <p><strong>Employee ID:</strong> ${location.resource?.employeeId || 'N/A'}</p>
-                <p><strong>Address:</strong> ${resourceAddress || 'Address not available'}</p>
-                <p><strong>Role:</strong> ${location.resource?.userRole || 'N/A'}</p>
-                <p><strong>Employee Type:</strong> ${location.resource?.employeeType || 'N/A'}</p>
-                <p><strong>Status:</strong> ${location.resource?.status || 'N/A'}</p>
+                <div class="project-info-window">
+                    <div class="info-header status-${statusClass}">
+                        <div class="project-icon">
+                            <span class="icon-text">R</span>
+                        </div>
+                        <div class="project-title">
+                            <h3>${fullName || 'Unknown Employee'}</h3>
+                            <span class="project-status status-${statusClass}">${status}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-content">
+                        <div class="info-row">
+                            <span class="info-label">Employee ID:</span>
+                            <span class="info-value">${employeeId}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Role:</span>
+                            <span class="info-value">${role}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Employee Type:</span>
+                            <span class="info-value">${employeeType}</span>
+                        </div>
+                        
+                        ${personalEmail !== 'N/A' ? `
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value">${personalEmail}</span>
+                        </div>
+                        ` : ''}
+                        
+                        ${phoneNumber !== 'N/A' ? `
+                        <div class="info-row">
+                            <span class="info-label">Phone:</span>
+                            <span class="info-value">${phoneNumber}</span>
+                        </div>
+                        ` : ''}
+                        
+                        ${paymentType !== 'N/A' ? `
+                        <div class="info-row">
+                            <span class="info-label">Payment Type:</span>
+                            <span class="info-value">${paymentType}</span>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="info-row address-row">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value">${resourceAddress}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-actions">
+                        <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, '${fullName.replace(/'/g, "\\'")}')">
+                            <span class="btn-icon">📍</span>
+                            Get Directions
+                        </button>
+                    </div>
+                </div>
             `;
         } else if (markerType === 'billing') {
+            const codeId = location.codeId || 'N/A';
+            const status = location.status || 'N/A';
+            const population = location.population || 'N/A';
+            const address = location.address || 'Address not available';
+            const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+            
             content = `
-                <h3>${location.billing?.resourceName || 'Unknown Resource'}</h3>
-                <p><strong>PCC Number:</strong> ${location.billing?.projectPccNumber || 'N/A'}</p>
-                <p><strong>Claim Number:</strong> ${location.billing?.claimNumber || 'N/A'}</p>
-                <p><strong>Payment Type:</strong> ${location.billing?.paymentType || 'N/A'}</p>
-                <p><strong>Billing Status:</strong> ${location.billing?.billingStatus || 'N/A'}</p>
+                <div class="project-info-window">
+                    <div class="info-header">
+                        <div class="project-icon billing-icon">
+                            <span class="icon-text">B</span>
+                        </div>
+                        <div class="project-title">
+                            <h3>Billing Location ${codeId}</h3>
+                            <span class="project-status status-${statusClass}">${status === 'false' ? 'Inactive' : status}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-content">
+                        <div class="info-row">
+                            <span class="info-label">Code ID:</span>
+                            <span class="info-value">${codeId}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Population:</span>
+                            <span class="info-value">${Number(population).toLocaleString()}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value">${status === 'false' ? 'Inactive' : 'Active'}</span>
+                        </div>
+                        
+                        <div class="info-row address-row">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value">${address}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-actions">
+                        <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, 'Billing Location ${codeId.replace(/'/g, "\\'")}')">
+                            <span class="btn-icon">📍</span>
+                            Get Directions
+                        </button>
+                    </div>
+                </div>
             `;
         }
         
@@ -787,7 +903,6 @@ document.head.appendChild(styleElement);
 
 // Info window action functions
 window.viewProjectSummary = function(projectId) {
-    console.log('🔍 Opening project summary for:', projectId);
     
     const projectData = activeMarkers.find(marker => 
         marker.markerType === 'project' && 
@@ -885,5 +1000,8 @@ window.viewProjectSummary = function(projectId) {
 window.openDirections = function(lat, lng, locationName) {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
     window.open(url, '_blank');
-    console.log(`🗺️ Opening directions to ${locationName} at ${lat}, ${lng}`);
+};
+
+window.viewResourceSummary = function(resourceId) {
+    alert(`Resource profile for ID ${resourceId} would open in a new tab`);
 };

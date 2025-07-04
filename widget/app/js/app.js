@@ -4,10 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load Google Maps API dynamically
     loadGoogleMapsAPI().then(() => {
-        console.log('Google Maps API loaded successfully');
         initializeMapAndFeatures();
     }).catch(error => {
-        console.error('Failed to load Google Maps API:', error);
         // Fallback: continue without maps
         initializeNonMapFeatures();
     });
@@ -18,12 +16,10 @@ function loadGoogleMapsAPI() {
     return new Promise((resolve, reject) => {
         // Check if Google Maps is already loaded
         if (typeof google !== 'undefined' && google.maps) {
-            console.log('Google Maps already loaded');
             resolve();
             return;
         }
 
-        console.log('Loading Google Maps API...');
         
         // Create script element
         const script = document.createElement('script');
@@ -33,35 +29,29 @@ function loadGoogleMapsAPI() {
         
         // Set up global callback for initial API load
         window.googleMapsLoaded = function() {
-            console.log('Google Maps script loaded successfully');
             // Validate that Google Maps actually loaded
             if (typeof google !== 'undefined' && google.maps) {
-                console.log('Google Maps API validated successfully');
                 // Now call the actual map initialization
                 if (typeof window.initMap === 'function') {
                     window.initMap();
                 }
                 resolve();
             } else {
-                console.error('Google Maps API callback fired but google.maps not available');
                 reject(new Error('Google Maps API validation failed'));
             }
         };
         
         script.onerror = (error) => {
-            console.error('Failed to load Google Maps API script:', error);
             reject(new Error('Google Maps API script failed to load - check API key'));
         };
         
         // Timeout handling
         setTimeout(() => {
             if (typeof google === 'undefined' || !google.maps) {
-                console.error('Google Maps API loading timeout');
                 reject(new Error('Google Maps API loading timeout - check API key and network'));
             }
         }, 10000); // 10 second timeout
         
-        console.log('Adding Google Maps script to head');
         document.head.appendChild(script);
     });
 }
@@ -75,7 +65,6 @@ function initializeMapAndFeatures() {
     
     // Initialize route planning UI immediately
     if (window.routeManager) {
-        console.log('routeManager found, initializing UI');
         window.routeManager.initializeRoutePlanningUI();
         
         // Initialize Google Maps-dependent features when ready
@@ -88,7 +77,6 @@ function initializeMapAndFeatures() {
         };
         checkGoogleMaps();
     } else {
-        console.log('routeManager not found!');
     }
     
     initializeTestInputs();
@@ -96,7 +84,6 @@ function initializeMapAndFeatures() {
 
 // Initialize features that don't require maps
 function initializeNonMapFeatures() {
-    console.log('Initializing non-map features only');
     
     if (window.filterManager) {
         window.filterManager.initializeDropdowns();
@@ -113,16 +100,12 @@ function initializeTestInputs() {
         const endInput = document.getElementById('route-end-search');
         
         if (startInput) {
-            console.log('Adding test event listener to start input');
             startInput.addEventListener('input', function() {
-                console.log('TEST: Start input working, value:', this.value);
             });
         }
         
         if (endInput) {
-            console.log('Adding test event listener to end input');
             endInput.addEventListener('input', function() {
-                console.log('TEST: End input working, value:', this.value);
             });
         }
     }, 1000);

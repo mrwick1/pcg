@@ -24,8 +24,8 @@ The application follows a modular JavaScript architecture with separate concerns
 
 ### Data Structure
 
-Three separate mock APIs provide:
-- **Projects**: ID, name, address, coordinates, project_status
+Three separate APIs provide:
+- **Projects**: ID, name, address, coordinates, calculated status based on business logic
 - **Resources**: ID, name, address, coordinates, resource_location, role, resource_status  
 - **Billing**: ID, name, address, coordinates, billing_location
 
@@ -109,12 +109,58 @@ This ensures the widget always uses the latest code and is properly validated an
 
 ### Project Data (All_Projects report)
 - `Project_Number` → Project ID/PCC Number
-- `Loss_Location_Street_Address` → Project address for geocoding
+- `Loss_Location_Street_Address` → Project address for geocoding (required for status classification)
+- `Latitude`, `Longitude` → Project coordinates (required for status classification)
 - `Project_Name` → Project name
-- `PS_5.Completion_Status` → Project status ("In Progress", "Completed", etc.)
+- `Project_Completed` → Boolean flag for completed projects
+- `PS_5.Transmitted_Report_and_Invoice_to_the_Client` → Transmission status
+- `PS_5.Project_Cancelled` → Cancellation flag
+- `PS_5.Project_Cancelled_Date` → Cancellation date
+- `PS_5.Project_Suspended` → Suspension status
+- `PS_5.Suspended_Projects_Released_On` → Suspension release date
 - `Type_of_Report` → Project type
 - `Account_Name` → Client/Account name
 - `Claim_Number`, `Insurer`, `Contact_Name` → Additional project details
+
+### Project Status Calculation Logic
+Project status is calculated based on business logic conditions:
+
+**Completed Projects:**
+- Loss_Location_Street_Address is not empty
+- Latitude is not empty
+- Longitude is not empty
+- Project_Completed is true
+
+**Live Projects:**
+- Loss_Location_Street_Address is not empty
+- Latitude is not empty
+- Longitude is not empty
+- PS_5.Transmitted_Report_and_Invoice_to_the_Client is empty
+- PS_5.Project_Cancelled is false
+- PS_5.Project_Cancelled_Date is empty
+- PS_5.Project_Suspended is empty
+
+**Archived Projects:**
+- Loss_Location_Street_Address is not empty
+- Latitude is not empty
+- Longitude is not empty
+- PS_5.Transmitted_Report_and_Invoice_to_the_Client is not empty
+- PS_5.Project_Cancelled is false
+
+**Cancelled Projects:**
+- Loss_Location_Street_Address is not empty
+- Latitude is not empty
+- Longitude is not empty
+- PS_5.Project_Cancelled is true
+- PS_5.Project_Cancelled_Date is not empty
+
+**Suspended Projects:**
+- Loss_Location_Street_Address is not empty
+- Latitude is not empty
+- Longitude is not empty
+- PS_5.Project_Suspended is not empty
+- PS_5.Transmitted_Report_and_Invoice_to_the_Client is empty
+- PS_5.Suspended_Projects_Released_On is empty
 
 ### Customer Data (All_Customers report)
 - `Employe_Name.first_name`, `Employe_Name.last_name` → Employee name

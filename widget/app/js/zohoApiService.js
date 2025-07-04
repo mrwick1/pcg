@@ -5,12 +5,14 @@
 const ZOHO_CONFIG = {
     appName: 'pemo',
     projectsReportName: 'All_Projects',
-    customersReportName: 'All_Customers'
+    customersReportName: 'All_Customers',
+    billingReportName: 'All_Billing_Locations'
 };
 
 // Request deduplication to prevent multiple simultaneous API calls
 let ongoingAPIRequest = null;
 let ongoingResourcesAPIRequest = null;
+let ongoingBillingAPIRequest = null;
 
 // Check if Zoho Creator API is available
 function isZohoAPIAvailable() {
@@ -21,35 +23,26 @@ function isZohoAPIAvailable() {
 
 // Initialize and test Zoho API
 async function initializeZohoAPI() {
-    console.log('🔍 === ZOHO API INITIALIZATION ===');
     
     if (!isZohoAPIAvailable()) {
-        console.log('❌ ZOHO API not available');
         return false;
     }
     
-    console.log('✅ ZOHO object available:', ZOHO);
-    console.log('📋 ZOHO.CREATOR methods:', Object.keys(ZOHO.CREATOR));
     
     // Test API methods
     if (ZOHO.CREATOR.DATA?.getRecords) {
-        console.log('✅ ZOHO.CREATOR.DATA.getRecords available');
         return true;
     } else if (ZOHO.CREATOR.PUBLISH?.getRecords) {
-        console.log('✅ ZOHO.CREATOR.PUBLISH.getRecords available');
         return true;
     }
     
-    console.log('❌ No suitable API methods found');
     return false;
 }
 
 // Make API call to fetch All_Projects data with pagination
 async function fetchAllProjectsData() {
-    console.log('🔄 Fetching All_Projects data with pagination (max_records: 1000 per page)');
     
     if (!isZohoAPIAvailable()) {
-        console.log('❌ Zoho API not available, returning mock data');
         return getMockProjectsData();
     }
     
@@ -71,7 +64,6 @@ async function fetchAllProjectsData() {
             config.record_cursor = recordCursor;
         }
         
-        console.log(`📤 Fetching page ${pageNumber} with config:`, config);
         
         let pageResponse = null;
         
@@ -79,9 +71,7 @@ async function fetchAllProjectsData() {
         if (ZOHO.CREATOR.DATA?.getRecords) {
             try {
                 pageResponse = await ZOHO.CREATOR.DATA.getRecords(config);
-                console.log(`✅ Page ${pageNumber} DATA.getRecords successful`);
             } catch (error) {
-                console.log(`❌ Page ${pageNumber} DATA.getRecords failed:`, JSON.stringify(error, null, 2));
             }
         }
         
@@ -89,14 +79,11 @@ async function fetchAllProjectsData() {
         if (!pageResponse && ZOHO.CREATOR.PUBLISH?.getRecords) {
             try {
                 pageResponse = await ZOHO.CREATOR.PUBLISH.getRecords(config);
-                console.log(`✅ Page ${pageNumber} PUBLISH.getRecords successful`);
             } catch (error) {
-                console.log(`❌ Page ${pageNumber} PUBLISH.getRecords failed:`, JSON.stringify(error, null, 2));
             }
         }
         
         if (!pageResponse) {
-            console.log(`❌ Page ${pageNumber} failed, stopping pagination`);
             break;
         }
         
@@ -105,31 +92,25 @@ async function fetchAllProjectsData() {
         
         if (processedPage.data && processedPage.data.length > 0) {
             allRecords = allRecords.concat(processedPage.data);
-            console.log(`📄 Page ${pageNumber}: Added ${processedPage.data.length} records (total: ${allRecords.length})`);
             
             // Check for pagination cursor in response
             recordCursor = extractRecordCursor(pageResponse);
             
             if (recordCursor) {
-                console.log(`🔄 Found record_cursor for next page: ${recordCursor}`);
                 pageNumber++;
             } else {
-                console.log('🏁 No more pages available');
                 hasMoreRecords = false;
             }
             
             // Safety check to prevent infinite loops
             if (pageNumber > 50) {
-                console.log('⚠️ Reached maximum page limit (50), stopping pagination');
                 hasMoreRecords = false;
             }
         } else {
-            console.log(`📄 Page ${pageNumber}: No records returned, stopping pagination`);
             hasMoreRecords = false;
         }
     }
     
-    console.log(`✅ Pagination complete! Retrieved ${allRecords.length} total records across ${pageNumber} pages`);
     
     return {
         data: allRecords,
@@ -170,23 +151,18 @@ function extractRecordCursor(response) {
 // Process API response to extract data
 function processAPIResponse(response) {
     if (response && response.data && Array.isArray(response.data)) {
-        console.log(`✅ Got ${response.data.length} records from API`);
         return { data: response.data, success: true };
     } else if (response && Array.isArray(response)) {
-        console.log(`✅ Got ${response.length} records from API (direct array)`);
         return { data: response, success: true };
     } else if (response && response.result && Array.isArray(response.result)) {
-        console.log(`✅ Got ${response.result.length} records from result field`);
         return { data: response.result, success: true };
     } else {
-        console.log('⚠️ Unexpected API response format:', response);
         return { data: [], success: false };
     }
 }
 
 // Mock data for testing when API is not available
 function getMockProjectsData() {
-    console.log('📋 Returning mock projects data');
     return {
         data: [
             {
@@ -194,26 +170,36 @@ function getMockProjectsData() {
                 Project_Number: "06132",
                 Project_Name: "Vernon Test Project",
                 Loss_Location_Street_Address: "12910 Parsons Road Tampa, FL 33635",
+                Latitude: "27.9947",
+                Longitude: "-82.3364",
                 Account_Name: "Test Client LLC",
                 Claim_Number: "HO0525434936",
                 Insurer: "Test Insurance Company",
                 Type_of_Report: "(20-04) Long-form Report (default)",
-                "PS_5.Completion_Status": "In Progress",
                 Project_Completed: "false",
+                "PS_5.Transmitted_Report_and_Invoice_to_the_Client": null,
+                "PS_5.Project_Cancelled": "false",
+                "PS_5.Project_Cancelled_Date": null,
+                "PS_5.Project_Suspended": null,
                 Contact_Name: "John Doe",
                 Date_of_Loss: "Jun 12,2025"
             },
             {
                 ID: "mock2", 
                 Project_Number: "06133",
-                Project_Name: "Sample Project 2",
+                Project_Name: "Sample Completed Project",
                 Loss_Location_Street_Address: "123 Main St, Miami, FL 33101",
+                Latitude: "25.7617",
+                Longitude: "-80.1918",
                 Account_Name: "Another Client Inc",
                 Claim_Number: "HO0525434937",
                 Insurer: "Sample Insurance Co",
                 Type_of_Report: "(20-04) Long-form Report (default)",
-                "PS_5.Completion_Status": "Completed",
                 Project_Completed: "true",
+                "PS_5.Transmitted_Report_and_Invoice_to_the_Client": "2025-05-20",
+                "PS_5.Project_Cancelled": "false",
+                "PS_5.Project_Cancelled_Date": null,
+                "PS_5.Project_Suspended": null,
                 Contact_Name: "Jane Smith",
                 Date_of_Loss: "May 15,2025"
             },
@@ -222,12 +208,17 @@ function getMockProjectsData() {
                 Project_Number: "06134",
                 Project_Name: "Live Project Demo",
                 Loss_Location_Street_Address: "456 Ocean Drive, Fort Lauderdale, FL 33301",
+                Latitude: "26.1224",
+                Longitude: "-80.1373",
                 Account_Name: "Live Client Corp",
                 Claim_Number: "HO0525434938",
                 Insurer: "Live Insurance Group",
                 Type_of_Report: "(20-04) Long-form Report (default)",
-                "PS_5.Completion_Status": "Live",
                 Project_Completed: "false",
+                "PS_5.Transmitted_Report_and_Invoice_to_the_Client": null,
+                "PS_5.Project_Cancelled": "false",
+                "PS_5.Project_Cancelled_Date": null,
+                "PS_5.Project_Suspended": null,
                 Contact_Name: "Mike Johnson",
                 Date_of_Loss: "Jul 1,2025"
             },
@@ -236,12 +227,17 @@ function getMockProjectsData() {
                 Project_Number: "06135",
                 Project_Name: "Archived Project",
                 Loss_Location_Street_Address: "789 Sunset Blvd, Orlando, FL 32801",
+                Latitude: "28.5383",
+                Longitude: "-81.3792",
                 Account_Name: "Archive Corp",
                 Claim_Number: "HO0525434939",
                 Insurer: "Archive Insurance",
                 Type_of_Report: "(20-04) Long-form Report (default)",
-                "PS_5.Completion_Status": "Archived",
-                Project_Completed: "true",
+                Project_Completed: "false",
+                "PS_5.Transmitted_Report_and_Invoice_to_the_Client": "2025-04-25",
+                "PS_5.Project_Cancelled": "false",
+                "PS_5.Project_Cancelled_Date": null,
+                "PS_5.Project_Suspended": null,
                 Contact_Name: "Sarah Davis",
                 Date_of_Loss: "Apr 20,2025"
             },
@@ -250,12 +246,17 @@ function getMockProjectsData() {
                 Project_Number: "06136",
                 Project_Name: "Cancelled Project",
                 Loss_Location_Street_Address: "321 Pine Street, Jacksonville, FL 32202",
+                Latitude: "30.3322",
+                Longitude: "-81.6557",
                 Account_Name: "Cancelled LLC",
                 Claim_Number: "HO0525434940",
                 Insurer: "Cancelled Insurance",
                 Type_of_Report: "(20-04) Long-form Report (default)",
-                "PS_5.Completion_Status": "Cancelled",
                 Project_Completed: "false",
+                "PS_5.Transmitted_Report_and_Invoice_to_the_Client": null,
+                "PS_5.Project_Cancelled": "true",
+                "PS_5.Project_Cancelled_Date": "2025-03-15",
+                "PS_5.Project_Suspended": null,
                 Contact_Name: "Tom Wilson",
                 Date_of_Loss: "Mar 10,2025"
             },
@@ -264,12 +265,18 @@ function getMockProjectsData() {
                 Project_Number: "06137",
                 Project_Name: "Suspended Project",
                 Loss_Location_Street_Address: "654 Bay Avenue, Naples, FL 34102",
+                Latitude: "26.1420",
+                Longitude: "-81.7948",
                 Account_Name: "Suspended Inc",
                 Claim_Number: "HO0525434941",
                 Insurer: "Suspended Insurance",
                 Type_of_Report: "(20-04) Long-form Report (default)",
-                "PS_5.Completion_Status": "Suspended",
                 Project_Completed: "false",
+                "PS_5.Transmitted_Report_and_Invoice_to_the_Client": null,
+                "PS_5.Project_Cancelled": "false",
+                "PS_5.Project_Cancelled_Date": null,
+                "PS_5.Project_Suspended": "2025-05-10",
+                "PS_5.Suspended_Projects_Released_On": null,
                 Contact_Name: "Lisa Brown",
                 Date_of_Loss: "May 5,2025"
             }
@@ -279,9 +286,96 @@ function getMockProjectsData() {
     };
 }
 
+
+// Test function for billing API
+window.testBillingAPI = async function() {
+    console.log('Billing API - Starting test...');
+    try {
+        const result = await fetchAllBillingData();
+        console.log('Billing API - Test result:', result);
+        
+        if (result.data.length > 0) {
+            console.log(`Billing API - Test success: ${result.data.length} records retrieved`);
+            console.log('Billing API - Sample record:', result.data[0]);
+        } else {
+            console.warn('Billing API - Test warning: No records retrieved');
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Billing API - Test error:', error);
+        return null;
+    }
+};
+
+// Helper function to determine project status based on business logic
+function determineProjectStatus(project) {
+    // Extract location fields
+    const address = project.Loss_Location_Street_Address;
+    const latitude = project.Latitude;
+    const longitude = project.Longitude;
+    
+    // Check if location data is valid (not empty)
+    const hasValidLocation = (address && address !== '') && 
+                           (latitude && latitude !== '') && 
+                           (longitude && longitude !== '');
+    
+    // 1. Completed Projects (highest priority)
+    // Conditions: address not empty, latitude not empty, longitude not empty, Project_Completed is true
+    if (hasValidLocation && (project.Project_Completed === 'true' || project.Project_Completed === true)) {
+        return 'Completed';
+    }
+    
+    // Extract PS_5 fields
+    const transmittedToClient = project["PS_5.Transmitted_Report_and_Invoice_to_the_Client"];
+    const projectCancelled = project["PS_5.Project_Cancelled"] === 'true' || project["PS_5.Project_Cancelled"] === true;
+    const projectCancelledDate = project["PS_5.Project_Cancelled_Date"];
+    const projectSuspended = project["PS_5.Project_Suspended"];
+    const suspendedReleasedOn = project["PS_5.Suspended_Projects_Released_On"];
+    
+    // All status types now require location validation (address, latitude, longitude not empty)
+    
+    // 2. Cancelled Projects
+    // Conditions: address not empty, latitude not empty, longitude not empty, cancelled is true, cancelled date not empty
+    if (hasValidLocation &&
+        projectCancelled === true && 
+        projectCancelledDate !== null && projectCancelledDate !== undefined && projectCancelledDate !== '') {
+        return 'Cancelled';
+    }
+    
+    // 3. Suspended Projects
+    // Conditions: address not empty, latitude not empty, longitude not empty, suspended not empty, transmitted empty, released empty
+    if (hasValidLocation &&
+        projectSuspended !== null && projectSuspended !== undefined && projectSuspended !== '' &&
+        (transmittedToClient === null || transmittedToClient === undefined || transmittedToClient === '') &&
+        (suspendedReleasedOn === null || suspendedReleasedOn === undefined || suspendedReleasedOn === '')) {
+        return 'Suspended';
+    }
+    
+    // 4. Archived Projects
+    // Conditions: address not empty, latitude not empty, longitude not empty, transmitted not empty, not cancelled
+    if (hasValidLocation &&
+        (transmittedToClient !== null && transmittedToClient !== undefined && transmittedToClient !== '') && 
+        projectCancelled === false) {
+        return 'Archived';
+    }
+    
+    // 5. Live Projects
+    // Conditions: address not empty, latitude not empty, longitude not empty, plus PS_5 conditions
+    if (hasValidLocation &&
+        (transmittedToClient === null || transmittedToClient === undefined || transmittedToClient === '') &&
+        projectCancelled === false &&
+        (projectCancelledDate === null || projectCancelledDate === undefined || projectCancelledDate === '') &&
+        (projectSuspended === null || projectSuspended === undefined || projectSuspended === '')) {
+        return 'Live';
+    }
+    
+    // If none of the conditions match, return Unknown
+    return 'Unknown';
+}
+
 // Process raw project data into structured format
 function processProjectData(rawProjects) {
-    console.log(`📊 Processing ${rawProjects.length} projects`);
     
     const processedProjects = rawProjects.map((project, index) => {
         // Extract and validate coordinates
@@ -292,11 +386,23 @@ function processProjectData(rawProjects) {
         const lat = (rawLat && rawLat !== '') ? Number.parseFloat(rawLat) : null;
         const lng = (rawLng && rawLng !== '') ? Number.parseFloat(rawLng) : null;
         
+        // Calculate status based on business logic
+        const calculatedStatus = determineProjectStatus(project);
+        
         // Debug: Log first few projects to see mapping
         if (index < 3) {
-            console.log('🔍 DEBUG: Raw project data:', project);
-            console.log('🔍 DEBUG: Mapped project name:', project.Project_Name);
-            console.log('🔍 DEBUG: Mapped project number:', project.Project_Number);
+            console.log(`Project ${index} status calculation:`, {
+                projectNumber: project.Project_Number,
+                address: project.Loss_Location_Street_Address,
+                latitude: project.Latitude,
+                longitude: project.Longitude,
+                completed: project.Project_Completed,
+                transmitted: project["PS_5.Transmitted_Report_and_Invoice_to_the_Client"],
+                cancelled: project["PS_5.Project_Cancelled"],
+                cancelledDate: project["PS_5.Project_Cancelled_Date"],
+                suspended: project["PS_5.Project_Suspended"],
+                calculatedStatus: calculatedStatus
+            });
         }
         
         return {
@@ -308,34 +414,45 @@ function processProjectData(rawProjects) {
             claimNumber: project.Claim_Number,
             contactName: project.Contact_Name,
             address: project.Loss_Location_Street_Address,
-            status: project["PS_5.Completion_Status"] || 'Unknown',
+            status: calculatedStatus,
             dateOfLoss: project.Date_of_Loss,
             insurer: project.Insurer,
             policyNumber: project.Policy_Number,
-            completed: project.Project_Completed === 'true',
+            completed: project.Project_Completed === 'true' || project.Project_Completed === true,
             lat: lat,
             lng: lng,
-            lastUpdated: Date.now()
+            lastUpdated: Date.now(),
+            // Store PS_5 data for reference
+            ps5Data: {
+                transmittedToClient: project["PS_5.Transmitted_Report_and_Invoice_to_the_Client"],
+                projectCancelled: project["PS_5.Project_Cancelled"],
+                projectCancelledDate: project["PS_5.Project_Cancelled_Date"],
+                projectSuspended: project["PS_5.Project_Suspended"],
+                suspendedReleasedOn: project["PS_5.Suspended_Projects_Released_On"]
+            }
         };
     });
     
     // Log coordinate statistics
     const withCoords = processedProjects.filter(p => p.lat !== null && p.lng !== null);
     const withoutCoords = processedProjects.length - withCoords.length;
-    console.log(`🗺️  Projects with coordinates: ${withCoords.length}`);
-    console.log(`❌ Projects without coordinates: ${withoutCoords}`);
+    
+    // Log status distribution
+    const statusCounts = processedProjects.reduce((acc, p) => {
+        acc[p.status] = (acc[p.status] || 0) + 1;
+        return acc;
+    }, {});
+    console.log('Project status distribution:', statusCounts);
     
     return processedProjects;
 }
 
 // Main function to get projects data with IndexedDB integration
 async function getProjectsData(filters = {}) {
-    console.log('🏗️ Getting projects data with filters:', filters);
     
     try {
         // Check if IndexedDB service is available
         if (!window.indexedDBService) {
-            console.log('⚠️ IndexedDB service not available, falling back to direct API');
             return await getProjectsDataDirect(filters);
         }
         
@@ -345,10 +462,8 @@ async function getProjectsData(filters = {}) {
         if (needsSync) {
             // Check if an API request is already in progress
             if (ongoingAPIRequest) {
-                console.log('⏳ API request already in progress, waiting for completion...');
                 await ongoingAPIRequest;
             } else {
-                console.log('🔄 Data needs sync, fetching from API and storing in IndexedDB...');
                 
                 // Start API request and store promise to prevent duplicates
                 ongoingAPIRequest = (async () => {
@@ -362,9 +477,7 @@ async function getProjectsData(filters = {}) {
                             
                             // Store in IndexedDB
                             await window.indexedDBService.storeProjectsData(processedProjects);
-                            console.log('✅ Fresh data stored in IndexedDB');
                         } else {
-                            console.log('⚠️ API sync failed, using existing IndexedDB data if available');
                         }
                     } finally {
                         // Clear the ongoing request promise
@@ -375,24 +488,20 @@ async function getProjectsData(filters = {}) {
                 await ongoingAPIRequest;
             }
         } else {
-            console.log('💾 Using IndexedDB data (up to date)');
         }
         
         // Get filtered data from IndexedDB
         return await window.indexedDBService.getProjectsFromDB(filters);
         
     } catch (error) {
-        console.error('❌ Error getting projects data:', error);
         
         // Fallback to direct API call
-        console.log('🔄 Falling back to direct API call...');
         return await getProjectsDataDirect(filters);
     }
 }
 
 // Fallback function for direct API calls (when IndexedDB is not available)
 async function getProjectsDataDirect(filters = {}) {
-    console.log('🔄 Getting projects data directly from API with filters:', filters);
     
     try {
         // Initialize API
@@ -402,7 +511,6 @@ async function getProjectsDataDirect(filters = {}) {
         const response = await fetchAllProjectsData();
         
         if (!response.success) {
-            console.log('⚠️ API call was not successful');
         }
         
         // Process data
@@ -430,7 +538,6 @@ async function getProjectsDataDirect(filters = {}) {
             );
         }
         
-        console.log(`✅ Returning ${filteredProjects.length} filtered projects from ${processedProjects.length} total (direct API)`);
         
         return {
             data: filteredProjects,
@@ -441,7 +548,6 @@ async function getProjectsDataDirect(filters = {}) {
         };
         
     } catch (error) {
-        console.error('❌ Error getting projects data directly:', error);
         return {
             data: [],
             total: 0,
@@ -457,70 +563,46 @@ async function getProjectsDataDirect(filters = {}) {
 
 // Debug functions for testing
 window.debugZohoAPI = function() {
-    console.log('🔍 === ZOHO API DEBUG ===');
-    console.log('ZOHO available:', typeof ZOHO !== 'undefined');
     
     if (typeof ZOHO !== 'undefined' && ZOHO.CREATOR) {
-        console.log('ZOHO.CREATOR methods:', Object.keys(ZOHO.CREATOR));
-        console.log('DATA.getRecords available:', !!ZOHO.CREATOR.DATA?.getRecords);
-        console.log('PUBLISH.getRecords available:', !!ZOHO.CREATOR.PUBLISH?.getRecords);
-        console.log('META.getReports available:', !!ZOHO.CREATOR.META?.getReports);
     }
     
-    console.log('📊 IndexedDB storage now used instead of cache');
-    console.log('🔍 === DEBUG COMPLETE ===');
 };
 
 window.testAllProjectsAPI = async function() {
-    console.log('🧪 === TESTING ALL_PROJECTS API ===');
     
     try {
         const result = await getProjectsData();
-        console.log('✅ Test result:', result);
         
         if (result.data.length > 0) {
-            console.log(`📊 Got ${result.data.length} projects`);
-            console.log('📋 First project:', result.data[0]);
         }
     } catch (error) {
-        console.error('❌ Test failed:', error);
     }
     
-    console.log('🧪 === TEST COMPLETE ===');
 };
 
 window.testPagination = async function() {
-    console.log('🧪 === TESTING PAGINATION ===');
     
     if (!isZohoAPIAvailable()) {
-        console.log('❌ Zoho API not available');
         return;
     }
     
     try {
         // Test pagination by directly calling fetchAllProjectsData
-        console.log('🔄 Starting pagination test...');
         const result = await fetchAllProjectsData();
         
-        console.log('✅ Pagination test complete!');
-        console.log(`📊 Results: ${result.totalRecords} records across ${result.totalPages} pages`);
-        console.log(`📄 First few records:`, result.data.slice(0, 3));
         
         return result;
         
     } catch (error) {
-        console.error('❌ Pagination test failed:', error);
         return null;
     }
     
-    console.log('🧪 === PAGINATION TEST COMPLETE ===');
 };
 
 window.testAPIConfigs = async function() {
-    console.log('🧪 === TESTING API CONFIGS DIRECTLY ===');
     
     if (!isZohoAPIAvailable()) {
-        console.log('❌ Zoho API not available');
         return;
     }
     
@@ -533,16 +615,12 @@ window.testAPIConfigs = async function() {
     
     for (let i = 0; i < configs.length; i++) {
         try {
-            console.log(`🔧 Testing config ${i + 1}:`, configs[i]);
             const response = await ZOHO.CREATOR.DATA.getRecords(configs[i]);
-            console.log(`✅ Config ${i + 1} SUCCESS:`, response);
             break;
         } catch (error) {
-            console.log(`❌ Config ${i + 1} failed:`, JSON.stringify(error, null, 2));
         }
     }
     
-    console.log('🧪 === CONFIG TEST COMPLETE ===');
 };
 
 // Export main functions for use by other modules
@@ -558,10 +636,8 @@ async function fetchProjectsData(filters = {}) {
 
 // Make API call to fetch All_Customers data with pagination
 async function fetchAllCustomersData() {
-    console.log('🔄 Fetching All_Customers data with pagination (max_records: 1000 per page)');
     
     if (!isZohoAPIAvailable()) {
-        console.log('❌ Zoho API not available, returning mock data');
         return getMockCustomersData();
     }
     
@@ -581,7 +657,6 @@ async function fetchAllCustomersData() {
             config.record_cursor = recordCursor;
         }
         
-        console.log(`📤 Fetching customers page ${pageNumber} with config:`, config);
         
         let pageResponse = null;
         
@@ -589,9 +664,7 @@ async function fetchAllCustomersData() {
         if (ZOHO.CREATOR.DATA?.getRecords) {
             try {
                 pageResponse = await ZOHO.CREATOR.DATA.getRecords(config);
-                console.log(`✅ Page ${pageNumber} DATA.getRecords successful`);
             } catch (error) {
-                console.log(`❌ Page ${pageNumber} DATA.getRecords failed:`, JSON.stringify(error, null, 2));
             }
         }
         
@@ -599,44 +672,36 @@ async function fetchAllCustomersData() {
         if (!pageResponse && ZOHO.CREATOR.PUBLISH?.getRecords) {
             try {
                 pageResponse = await ZOHO.CREATOR.PUBLISH.getRecords(config);
-                console.log(`✅ Page ${pageNumber} PUBLISH.getRecords successful`);
             } catch (error) {
-                console.log(`❌ Page ${pageNumber} PUBLISH.getRecords failed:`, JSON.stringify(error, null, 2));
             }
         }
         
         if (!pageResponse) {
-            console.log(`❌ Page ${pageNumber} failed, stopping pagination`);
             break;
         }
         
         const processedPage = processAPIResponse(pageResponse);
         
         if (processedPage.data && processedPage.data.length > 0) {
+            
             allRecords = allRecords.concat(processedPage.data);
-            console.log(`📄 Page ${pageNumber}: Added ${processedPage.data.length} records (total: ${allRecords.length})`);
             
             recordCursor = extractRecordCursor(pageResponse);
             
             if (recordCursor) {
-                console.log(`🔄 Found record_cursor for next page: ${recordCursor}`);
                 pageNumber++;
             } else {
-                console.log('🏁 No more pages available');
                 hasMoreRecords = false;
             }
             
             if (pageNumber > 50) {
-                console.log('⚠️ Reached maximum page limit (50), stopping pagination');
                 hasMoreRecords = false;
             }
         } else {
-            console.log(`📄 Page ${pageNumber}: No records returned, stopping pagination`);
             hasMoreRecords = false;
         }
     }
     
-    console.log(`✅ Customers pagination complete! Retrieved ${allRecords.length} total records across ${pageNumber} pages`);
     
     return {
         data: allRecords,
@@ -649,39 +714,78 @@ async function fetchAllCustomersData() {
 
 // Mock data for testing when API is not available
 function getMockCustomersData() {
-    console.log('📋 Returning mock customers data');
     return {
         data: [
             {
                 ID: "mockCustomer1",
+                Employee_Number: "EMP001",
                 Employe_Name: {
                     first_name: "John",
-                    last_name: "Doe"
+                    last_name: "Doe",
+                    zc_display_value: "John Doe"
                 },
                 User_Role: "Project Manager",
                 Employee_Type: "Full Time",
                 Status: "Active",
+                Personal_Email: "john.doe@example.com",
+                Phone_Number: "(555) 123-4567",
+                Payment_Type: "Salary",
+                Latitude: "27.9506",
+                Longitude: "-82.4572",
                 Permanent_Address: {
                     address_line_1: "123 Main St",
-                    city: "Tampa",
+                    district_city: "Tampa",
                     state_province: "FL",
-                    postal_code: "33601"
+                    postal_code: "33601",
+                    zc_display_value: "123 Main St, Tampa, FL 33601"
                 }
             },
             {
                 ID: "mockCustomer2",
+                Employee_Number: "EMP002",
                 Employe_Name: {
                     first_name: "Jane",
-                    last_name: "Smith"
+                    last_name: "Smith",
+                    zc_display_value: "Jane Smith"
                 },
                 User_Role: "Field Technician",
                 Employee_Type: "Contract",
                 Status: "Active",
+                Personal_Email: "jane.smith@example.com",
+                Phone_Number: "(555) 987-6543",
+                Payment_Type: "Hourly",
+                Latitude: "25.7617",
+                Longitude: "-80.1918",
                 Temporary_Address: {
                     address_line_1: "456 Oak Ave",
-                    city: "Miami",
+                    district_city: "Miami",
                     state_province: "FL",
-                    postal_code: "33101"
+                    postal_code: "33101",
+                    zc_display_value: "456 Oak Ave, Miami, FL 33101"
+                }
+            },
+            {
+                ID: "mockCustomer3",
+                Employee_Number: "EMP003",
+                Employe_Name: {
+                    first_name: "Mike",
+                    last_name: "Johnson",
+                    zc_display_value: "Mike Johnson"
+                },
+                User_Role: "Estimator",
+                Employee_Type: "Full Time",
+                Status: "Inactive",
+                Personal_Email: "mike.johnson@example.com",
+                Phone_Number: "(555) 456-7890",
+                Payment_Type: "Salary",
+                Latitude: "28.5383",
+                Longitude: "-81.3792",
+                Permanent_Address: {
+                    address_line_1: "789 Pine Dr",
+                    district_city: "Orlando",
+                    state_province: "FL",
+                    postal_code: "32801",
+                    zc_display_value: "789 Pine Dr, Orlando, FL 32801"
                 }
             }
         ],
@@ -690,14 +794,34 @@ function getMockCustomersData() {
     };
 }
 
+
+// Test function for billing API
+window.testBillingAPI = async function() {
+    console.log('Billing API - Starting test...');
+    try {
+        const result = await fetchAllBillingData();
+        console.log('Billing API - Test result:', result);
+        
+        if (result.data.length > 0) {
+            console.log(`Billing API - Test success: ${result.data.length} records retrieved`);
+            console.log('Billing API - Sample record:', result.data[0]);
+        } else {
+            console.warn('Billing API - Test warning: No records retrieved');
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Billing API - Test error:', error);
+        return null;
+    }
+};
+
 // Process raw customer data into structured format
 function processCustomerData(rawCustomers) {
-    console.log(`📊 Processing ${rawCustomers.length} customers`);
     
     const processedCustomers = rawCustomers.map((customer, index) => {
-        // Debug: Log first few customers to see mapping
-        if (index < 3) {
-            console.log('🔍 DEBUG: Raw customer data:', customer);
+        // Minimal debug logging
+        if (index < 1 && !customer.Employe_Name?.first_name) {
         }
         
         // Extract coordinates from root level fields
@@ -707,6 +831,7 @@ function processCustomerData(rawCustomers) {
         // Convert to numbers, set to null if empty/invalid
         const lat = (rawLat && rawLat !== '') ? Number.parseFloat(rawLat) : null;
         const lng = (rawLng && rawLng !== '') ? Number.parseFloat(rawLng) : null;
+        
         
         // Build address from either permanent or temporary address
         let address = null;
@@ -726,7 +851,7 @@ function processCustomerData(rawCustomers) {
             addressString = `${address.address_line_1 || ''}, ${address.district_city || ''}, ${address.state_province || ''} ${address.postal_code || ''}`.replace(/^,\s*|,\s*$/g, '').trim();
         }
         
-        return {
+        const processedCustomer = {
             id: customer.ID,
             employeeId: customer.Employee_Number || customer.ID,
             firstName: customer.Employe_Name?.first_name || '',
@@ -745,26 +870,24 @@ function processCustomerData(rawCustomers) {
             lng: lng,
             lastUpdated: Date.now()
         };
+        
+        
+        return processedCustomer;
     });
     
     // Log coordinate statistics
     const withCoords = processedCustomers.filter(c => c.lat !== null && c.lng !== null);
     const withoutCoords = processedCustomers.length - withCoords.length;
-    console.log(`🗺️  Resources with coordinates: ${withCoords.length}`);
-    console.log(`❌ Resources without coordinates: ${withoutCoords}`);
     
-    console.log(`✅ Processed ${processedCustomers.length} customers`);
     return processedCustomers;
 }
 
 // Main function to get customers data with IndexedDB integration
 async function getCustomersData(filters = {}) {
-    console.log('🏗️ Getting customers data with filters:', filters);
     
     try {
         // Check if IndexedDB service is available
         if (!window.indexedDBService) {
-            console.log('⚠️ IndexedDB service not available, falling back to direct API');
             return await getCustomersDataDirect(filters);
         }
         
@@ -774,10 +897,8 @@ async function getCustomersData(filters = {}) {
         if (needsSync) {
             // Check if an API request is already in progress
             if (ongoingResourcesAPIRequest) {
-                console.log('⏳ Resources API request already in progress, waiting for completion...');
                 await ongoingResourcesAPIRequest;
             } else {
-                console.log('🔄 Resources data needs sync, fetching from API and storing in IndexedDB...');
                 
                 // Start API request and store promise to prevent duplicates
                 ongoingResourcesAPIRequest = (async () => {
@@ -791,9 +912,7 @@ async function getCustomersData(filters = {}) {
                             
                             // Store in IndexedDB
                             await window.indexedDBService.storeResourcesData(processedCustomers);
-                            console.log('✅ Fresh resources data stored in IndexedDB');
                         } else {
-                            console.log('⚠️ Resources API sync failed, using existing IndexedDB data if available');
                         }
                     } finally {
                         // Clear the ongoing request promise
@@ -804,24 +923,20 @@ async function getCustomersData(filters = {}) {
                 await ongoingResourcesAPIRequest;
             }
         } else {
-            console.log('💾 Using IndexedDB resources data (up to date)');
         }
         
         // Get filtered data from IndexedDB
         return await window.indexedDBService.getResourcesFromDB(filters);
         
     } catch (error) {
-        console.error('❌ Error getting customers data:', error);
         
         // Fallback to direct API call
-        console.log('🔄 Falling back to direct API call...');
         return await getCustomersDataDirect(filters);
     }
 }
 
 // Fallback function for direct API calls (when IndexedDB is not available)
 async function getCustomersDataDirect(filters = {}) {
-    console.log('🔄 Getting customers data directly from API with filters:', filters);
     
     try {
         // Initialize API
@@ -831,7 +946,6 @@ async function getCustomersDataDirect(filters = {}) {
         const response = await fetchAllCustomersData();
         
         if (!response.success) {
-            console.log('⚠️ API call was not successful');
         }
         
         // Process data
@@ -856,9 +970,8 @@ async function getCustomersDataDirect(filters = {}) {
             );
         }
         
-        console.log(`✅ Returning ${filteredCustomers.length} filtered customers from ${processedCustomers.length} total (direct API)`);
         
-        return {
+        const result = {
             data: filteredCustomers,
             total: processedCustomers.length,
             filtered: filteredCustomers.length,
@@ -866,8 +979,10 @@ async function getCustomersDataDirect(filters = {}) {
             mock: response.mock
         };
         
+        
+        return result;
+        
     } catch (error) {
-        console.error('❌ Error getting customers data directly:', error);
         return {
             data: [],
             total: 0,
@@ -886,67 +1001,355 @@ window.getCustomersData = getCustomersData;
 
 // Test function for resources/customers API
 window.testCustomersAPI = async function() {
-    console.log('🧪 === TESTING ALL_CUSTOMERS API ===');
     
     try {
         const result = await getCustomersData();
-        console.log('✅ Test result:', result);
         
         if (result.data.length > 0) {
-            console.log(`📊 Got ${result.data.length} customers`);
-            console.log('📋 First customer:', result.data[0]);
         }
     } catch (error) {
-        console.error('❌ Test failed:', error);
     }
     
-    console.log('🧪 === TEST COMPLETE ===');
 };
 
 // Test the resources API call with IndexedDB integration
 window.testResourcesAPICall = async function() {
-    console.log('🧪 === TESTING RESOURCES API WITH INDEXEDDB ===');
     
     try {
-        console.log('🔄 Calling getResourcesData (with IndexedDB integration)...');
         const result = await getResourcesData();
-        console.log('✅ Resources API result:', result);
         
         if (result.data && result.data.length > 0) {
-            console.log(`📊 Got ${result.data.length} resources`);
-            console.log('📋 First resource:', result.data[0]);
             
             // Check if any resources have coordinates
             const withCoords = result.data.filter(r => r.lat !== null && r.lng !== null && !isNaN(r.lat) && !isNaN(r.lng));
-            console.log(`🗺️ Resources with coordinates: ${withCoords.length}`);
             if (withCoords.length > 0) {
-                console.log('📍 Sample resource with coordinates:', withCoords[0]);
             }
         } else {
-            console.log('⚠️ No resources data returned');
         }
         
         // Test IndexedDB stats
         if (window.indexedDBService) {
-            console.log('💾 Testing IndexedDB stats...');
             const stats = await window.indexedDBService.getDBStats();
-            console.log('📊 IndexedDB stats:', stats);
         }
         
         return result;
     } catch (error) {
-        console.error('❌ Resources API test failed:', error);
         return null;
     }
 };
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📋 Zoho API Service loaded (functional version)');
     
     // Auto-test resources API after a short delay
     setTimeout(() => {
-        console.log('🔄 Auto-testing resources API...');
         testResourcesAPICall();
     }, 2000);
 });
+
+// ==================== BILLING LOCATIONS API ====================
+
+// Make API call to fetch All_Billing_Locations data with pagination
+async function fetchAllBillingData() {
+    
+    if (!isZohoAPIAvailable()) {
+        return getMockBillingData();
+    }
+    
+    let allRecords = [];
+    let recordCursor = null;
+    let pageNumber = 1;
+    let hasMoreRecords = true;
+    
+    while (hasMoreRecords) {
+        const config = {
+            app_name: ZOHO_CONFIG.appName,
+            report_name: ZOHO_CONFIG.billingReportName,
+            max_records: 1000
+        };
+        
+        if (recordCursor) {
+            config.record_cursor = recordCursor;
+        }
+        
+        console.log(`Billing API - Fetching page ${pageNumber} with config:`, config);
+        
+        let pageResponse = null;
+        
+        // Try DATA.getRecords first
+        if (ZOHO.CREATOR.DATA?.getRecords) {
+            try {
+                pageResponse = await ZOHO.CREATOR.DATA.getRecords(config);
+            } catch (error) {
+            }
+        }
+        
+        // Try PUBLISH.getRecords as fallback
+        if (!pageResponse && ZOHO.CREATOR.PUBLISH?.getRecords) {
+            try {
+                pageResponse = await ZOHO.CREATOR.PUBLISH.getRecords(config);
+            } catch (error) {
+            }
+        }
+        
+        if (!pageResponse) {
+            break;
+        }
+        
+        const processedPage = processAPIResponse(pageResponse);
+        
+        if (processedPage.data && processedPage.data.length > 0) {
+            
+            allRecords = allRecords.concat(processedPage.data);
+            
+            recordCursor = extractRecordCursor(pageResponse);
+            
+            if (recordCursor) {
+                pageNumber++;
+            } else {
+                hasMoreRecords = false;
+            }
+            
+            if (pageNumber > 50) {
+                hasMoreRecords = false;
+            }
+        } else {
+            hasMoreRecords = false;
+        }
+    }
+    
+    
+    return {
+        data: allRecords,
+        success: allRecords.length > 0,
+        mock: false,
+        totalPages: pageNumber,
+        totalRecords: allRecords.length
+    };
+}
+
+// Mock data for testing when API is not available
+function getMockBillingData() {
+    return {
+        data: [
+            {
+                ID: "mockBilling1",
+                Code_ID: "BL001",
+                Status: "Active",
+                Population: "50000",
+                Address: {
+                    zc_display_value: "100 Billing Plaza, Tampa, FL 33602",
+                    latitude: "27.9478",
+                    longitude: "-82.4584"
+                }
+            },
+            {
+                ID: "mockBilling2",
+                Code_ID: "BL002",
+                Status: "Active",
+                Population: "75000",
+                Address: {
+                    zc_display_value: "200 Payment Street, Miami, FL 33131",
+                    latitude: "25.7617",
+                    longitude: "-80.1918"
+                }
+            },
+            {
+                ID: "mockBilling3",
+                Code_ID: "BL003",
+                Status: "Inactive",
+                Population: "30000",
+                Address: {
+                    zc_display_value: "300 Invoice Lane, Orlando, FL 32803",
+                    latitude: "28.5383",
+                    longitude: "-81.3792"
+                }
+            }
+        ],
+        success: false,
+        mock: true
+    };
+}
+
+// Process raw billing data into structured format
+function processBillingData(rawBilling) {
+    console.log('Billing API - Processing billing data:', rawBilling.length, 'records');
+    
+    const processedBilling = rawBilling.map((billing, index) => {
+        // Extract coordinates - prefer root level, fallback to Address object
+        const rawLat = billing.Latitude || billing.Address?.latitude;
+        const rawLng = billing.Longitude || billing.Address?.longitude;
+        
+        // Convert to numbers, set to null if empty/invalid
+        const lat = (rawLat && rawLat !== '') ? Number.parseFloat(rawLat) : null;
+        const lng = (rawLng && rawLng !== '') ? Number.parseFloat(rawLng) : null;
+        
+        // Debug logging for first few records
+        if (index < 3) {
+            console.log(`Billing API - Record ${index}:`, {
+                codeId: billing.Code_ID,
+                address: billing.Address?.zc_display_value,
+                coordinates: { lat, lng },
+                status: billing.Status
+            });
+        }
+        
+        return {
+            id: billing.ID,
+            codeId: billing.Code_ID,
+            status: billing.Status,
+            population: billing.Population,
+            address: billing.Address?.zc_display_value || '',
+            lat: lat,
+            lng: lng,
+            lastUpdated: Date.now()
+        };
+    });
+    
+    // Log coordinate statistics
+    const withCoords = processedBilling.filter(b => b.lat !== null && b.lng !== null);
+    const withoutCoords = processedBilling.length - withCoords.length;
+    
+    console.log(`Billing API - Coordinate stats: ${withCoords.length} with coords, ${withoutCoords} without coords`);
+    
+    return processedBilling;
+}
+
+// Main function to get billing data with IndexedDB integration
+async function getBillingData(filters = {}) {
+    console.log('Billing API - getBillingData called with filters:', filters);
+    
+    try {
+        // Check if IndexedDB service is available
+        if (!window.indexedDBService) {
+            return await getBillingDataDirect(filters);
+        }
+        
+        // Check if we need to sync data from API
+        const needsSync = await window.indexedDBService.needsSync('billing');
+        console.log('Billing API - needsSync:', needsSync);
+        
+        if (needsSync) {
+            // Check if an API request is already in progress
+            if (ongoingBillingAPIRequest) {
+                console.log('Billing API - Waiting for ongoing request...');
+                await ongoingBillingAPIRequest;
+            } else {
+                console.log('Billing API - Starting new API request...');
+                
+                // Start API request and store promise to prevent duplicates
+                ongoingBillingAPIRequest = (async () => {
+                    try {
+                        // Fetch fresh data from API
+                        const response = await fetchAllBillingData();
+                        
+                        if (response.success && response.data.length > 0) {
+                            // Process the data
+                            const processedBilling = processBillingData(response.data);
+                            
+                            // Store in IndexedDB
+                            await window.indexedDBService.storeBillingData(processedBilling);
+                            console.log('Billing API - Data stored in IndexedDB');
+                        } else {
+                            console.warn('Billing API - No data received from API');
+                        }
+                    } finally {
+                        // Clear the ongoing request promise
+                        ongoingBillingAPIRequest = null;
+                    }
+                })();
+                
+                await ongoingBillingAPIRequest;
+            }
+        } else {
+            console.log('Billing API - Using cached data');
+        }
+        
+        // Get filtered data from IndexedDB
+        return await window.indexedDBService.getBillingFromDB(filters);
+        
+    } catch (error) {
+        console.error('Billing API - Error in getBillingData:', error);
+        // Fallback to direct API call
+        return await getBillingDataDirect(filters);
+    }
+}
+
+// Fallback function for direct API calls (when IndexedDB is not available)
+async function getBillingDataDirect(filters = {}) {
+    console.log('Billing API - getBillingDataDirect called with filters:', filters);
+    
+    try {
+        // Initialize API
+        const apiAvailable = await initializeZohoAPI();
+        
+        // Fetch raw data
+        const response = await fetchAllBillingData();
+        
+        if (!response.success) {
+            console.warn('Billing API - Direct fetch unsuccessful');
+        }
+        
+        // Process data
+        const processedBilling = processBillingData(response.data);
+        
+        // Apply filters
+        let filteredBilling = processedBilling;
+        
+        if (filters.status) {
+            filteredBilling = filteredBilling.filter(b => b.status === filters.status);
+        }
+        if (filters.codeId) {
+            filteredBilling = filteredBilling.filter(b => 
+                b.codeId && b.codeId.includes(filters.codeId)
+            );
+        }
+        
+        const result = {
+            data: filteredBilling,
+            total: processedBilling.length,
+            filtered: filteredBilling.length,
+            success: response.success,
+            mock: response.mock
+        };
+        
+        console.log('Billing API - Direct result:', result);
+        
+        return result;
+        
+    } catch (error) {
+        console.error('Billing API - Error in getBillingDataDirect:', error);
+        return {
+            data: [],
+            total: 0,
+            filtered: 0,
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+
+// Test function for billing API
+window.testBillingAPI = async function() {
+    console.log('Billing API - Starting test...');
+    try {
+        const result = await fetchAllBillingData();
+        console.log('Billing API - Test result:', result);
+        
+        if (result.data.length > 0) {
+            console.log(`Billing API - Test success: ${result.data.length} records retrieved`);
+            console.log('Billing API - Sample record:', result.data[0]);
+        } else {
+            console.warn('Billing API - Test warning: No records retrieved');
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Billing API - Test error:', error);
+        return null;
+    }
+};
+// Export billing functions
+window.fetchBillingData = getBillingData;
+window.getBillingData = getBillingData;

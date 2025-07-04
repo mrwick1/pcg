@@ -13,7 +13,6 @@ let refreshManager = {
     
     // Initialize refresh manager
     init() {
-        console.log('🔄 Initializing refresh manager...');
         
         // Get DOM elements
         this.modal = document.getElementById('refresh-modal');
@@ -26,20 +25,10 @@ let refreshManager = {
         this.legendContent = document.getElementById('legend-content');
         
         // Debug: Check which elements were found
-        console.log('🔍 Element check:');
-        console.log('  - Modal:', !!this.modal);
-        console.log('  - Loading overlay:', !!this.loadingOverlay);
-        console.log('  - Refresh button:', !!this.refreshButton);
-        console.log('  - Confirm button:', !!this.confirmButton);
-        console.log('  - Cancel button:', !!this.cancelButton);
-        console.log('  - Close button:', !!this.closeButton);
-        console.log('  - Legend toggle:', !!this.legendToggle);
-        console.log('  - Legend content:', !!this.legendContent);
         
         // Set up event listeners
         this.setupEventListeners();
         
-        console.log('✅ Refresh manager initialized');
     },
     
     // Set up all event listeners
@@ -99,8 +88,6 @@ let refreshManager = {
     
     // Show confirmation modal
     showConfirmationModal() {
-        console.log('📋 Showing refresh confirmation modal');
-        console.log('📋 Modal element found:', !!this.modal);
         
         if (this.modal) {
             // Force all modal styles via JavaScript
@@ -242,9 +229,7 @@ let refreshManager = {
                 });
             }
             
-            console.log('📋 Modal displayed with forced styles applied');
         } else {
-            console.error('❌ Modal element not found! Using fallback confirmation...');
             // Fallback to browser confirm dialog
             const confirmed = confirm(
                 'Refresh Data\n\n' +
@@ -264,7 +249,6 @@ let refreshManager = {
     
     // Hide confirmation modal
     hideConfirmationModal() {
-        console.log('📋 Hiding refresh confirmation modal');
         if (this.modal) {
             this.modal.style.display = 'none';
         }
@@ -272,7 +256,6 @@ let refreshManager = {
     
     // Show loading overlay
     showLoadingOverlay() {
-        console.log('⏳ Showing loading overlay');
         if (this.loadingOverlay) {
             // Force all loading overlay styles
             this.loadingOverlay.style.cssText = `
@@ -334,7 +317,6 @@ let refreshManager = {
     
     // Hide loading overlay
     hideLoadingOverlay() {
-        console.log('✅ Hiding loading overlay');
         if (this.loadingOverlay) {
             this.loadingOverlay.style.display = 'none';
         }
@@ -342,38 +324,113 @@ let refreshManager = {
     
     // Perform the actual refresh
     async performRefresh() {
-        console.log('🔄 Starting data refresh process...');
         
         try {
             // Show loading overlay
             this.showLoadingOverlay();
             
             // Step 1: Force refresh IndexedDB metadata
+            console.log('Refresh: Clearing IndexedDB metadata to force fresh API calls...');
             if (window.indexedDBService) {
-                console.log('🗑️ Clearing sync metadata to force refresh...');
                 await window.indexedDBService.forceRefresh();
             }
             
-            // Step 2: Get fresh data (this will trigger API calls)
-            console.log('📥 Fetching fresh data from API...');
-            const result = await window.getProjectsData({});
+            // Step 2: Get fresh data (this will trigger API calls for all data types)
+            console.log('Refresh: Fetching fresh data from all APIs...');
+            
+            // Check which functions are available
+            console.log('Available functions:', {
+                getProjectsData: typeof window.getProjectsData,
+                getResourcesData: typeof window.getResourcesData,
+                getBillingData: typeof window.getBillingData
+            });
+            
+            let projectsResult, resourcesResult, billingResult;
+            
+            try {
+                // Fetch projects data
+                console.log('Refresh: Calling getProjectsData...');
+                projectsResult = await window.getProjectsData({});
+                console.log('Refresh: Projects result:', projectsResult);
+            } catch (error) {
+                console.error('Refresh: Projects API error:', error);
+                projectsResult = {success: false, total: 0, error: error.message};
+            }
+            
+            try {
+                // Fetch resources data
+                if (window.getResourcesData) {
+                    console.log('Refresh: Calling getResourcesData...');
+                    resourcesResult = await window.getResourcesData({});
+                    console.log('Refresh: Resources result:', resourcesResult);
+                } else {
+                    console.log('Refresh: getResourcesData not available, using mock data');
+                    resourcesResult = {success: true, total: 0};
+                }
+            } catch (error) {
+                console.error('Refresh: Resources API error:', error);
+                resourcesResult = {success: false, total: 0, error: error.message};
+            }
+            
+            try {
+                // Fetch billing data
+                if (window.getBillingData) {
+                    console.log('Refresh: Calling getBillingData...');
+                    billingResult = await window.getBillingData({});
+                    console.log('Refresh: Billing result:', billingResult);
+                } else {
+                    console.log('Refresh: getBillingData not available, using mock data');
+                    billingResult = {success: true, total: 0};
+                }
+            } catch (error) {
+                console.error('Refresh: Billing API error:', error);
+                billingResult = {success: false, total: 0, error: error.message};
+            }
+            
+            console.log('Refresh: Final API results -', {
+                projects: projectsResult,
+                resources: resourcesResult, 
+                billing: billingResult
+            });
+            
+            // Handle different result formats
+            const projectsCount = Array.isArray(projectsResult) ? projectsResult.length : (projectsResult.total || projectsResult.data?.length || 0);
+            const projectsSuccess = Array.isArray(projectsResult) ? projectsResult.length > 0 : (projectsResult.success !== false);
+            
+            const resourcesCount = resourcesResult.total || resourcesResult.data?.length || 0;
+            const resourcesSuccess = resourcesResult.success !== false;
+            
+            const billingCount = billingResult.total || billingResult.data?.length || 0;
+            const billingSuccess = billingResult.success !== false;
+            
+            const result = {
+                success: projectsSuccess && resourcesSuccess && billingSuccess,
+                total: projectsCount + resourcesCount + billingCount,
+                projects: projectsCount,
+                resources: resourcesCount,
+                billing: billingCount,
+                error: projectsResult.error || resourcesResult.error || billingResult.error
+            };
+            
+            console.log('Refresh: Combined result:', result);
             
             if (result.success) {
-                console.log(`✅ Successfully refreshed ${result.total} projects`);
+                console.log('Refresh: Success - proceeding to refresh UI components');
                 
                 // Step 3: Reload all UI components
-                console.log('🔄 Reloading UI components...');
                 await this.refreshUIComponents();
                 
                 // Show success message briefly
-                this.showSuccessMessage(result.total);
+                this.showSuccessMessage(result);
             } else {
-                console.log('❌ Refresh failed:', result.error);
-                this.showErrorMessage(result.error || 'Unknown error occurred');
+                console.error('Refresh: Failed -', result);
+                const errorMessage = result.error || 'Unknown error occurred';
+                console.error('Refresh: Error message:', errorMessage);
+                this.showErrorMessage(errorMessage);
             }
             
         } catch (error) {
-            console.error('❌ Refresh process failed:', error);
+            console.error('Refresh: Exception caught:', error);
             this.showErrorMessage(error.message || 'Refresh failed');
         } finally {
             // Always hide loading overlay
@@ -386,31 +443,41 @@ let refreshManager = {
         try {
             // Refresh map data
             if (window.mapManager && window.mapManager.loadAndDisplayData) {
-                console.log('🗺️ Refreshing map data...');
                 await window.mapManager.loadAndDisplayData();
             }
             
             // Refresh route options
             if (window.routeManager && window.routeManager.populateRouteOptions) {
-                console.log('🛣️ Refreshing route options...');
                 await window.routeManager.populateRouteOptions();
             }
             
             // Refresh filters
-            if (window.filterManager && window.filterManager.refreshFilterOptions) {
-                console.log('🔍 Refreshing filter options...');
-                await window.filterManager.refreshFilterOptions();
+            if (window.filterManager && window.filterManager.populateDropdownOptions) {
+                await window.filterManager.populateDropdownOptions();
             }
             
-            console.log('✅ All UI components refreshed');
             
         } catch (error) {
-            console.error('❌ Error refreshing UI components:', error);
         }
     },
     
     // Show success message
-    showSuccessMessage(recordCount) {
+    showSuccessMessage(result) {
+        // Handle both old format (number) and new format (object)
+        let messageContent;
+        if (typeof result === 'number') {
+            messageContent = `Updated ${result} records from Zoho Creator`;
+        } else {
+            const total = result.total || 0;
+            const breakdown = [];
+            if (result.projects > 0) breakdown.push(`${result.projects} projects`);
+            if (result.resources > 0) breakdown.push(`${result.resources} resources`);
+            if (result.billing > 0) breakdown.push(`${result.billing} billing locations`);
+            
+            messageContent = `Updated ${total} total records:<br>
+                <small style="margin-left: 10px;">${breakdown.join(', ')}</small>`;
+        }
+        
         // Create temporary success notification
         const notification = document.createElement('div');
         notification.style.cssText = `
@@ -428,7 +495,7 @@ let refreshManager = {
         `;
         notification.innerHTML = `
             <strong>✅ Data Refreshed Successfully!</strong><br>
-            Updated ${recordCount} records from Zoho Creator
+            ${messageContent}
         `;
         
         document.body.appendChild(notification);
@@ -482,11 +549,9 @@ let refreshManager = {
             if (isCollapsed) {
                 this.legendContent.classList.remove('collapsed');
                 this.legendToggle.textContent = '−';
-                console.log('📋 Legend expanded');
             } else {
                 this.legendContent.classList.add('collapsed');
                 this.legendToggle.textContent = '+';
-                console.log('📋 Legend collapsed');
             }
         }
     }

@@ -26,7 +26,6 @@ function hasValidCoordinates(location) {
 
 // Initialize route planning system
 function initializeRoutePlanning() {
-    console.log('Initializing route planning...');
     
     // Initialize directions service and renderer
     if (google && google.maps && !routeDirectionsService) {
@@ -61,7 +60,6 @@ function initializeRoutePlanning() {
 
 // Initialize UI immediately (doesn't need Google Maps)
 function initializeRoutePlanningUI() {
-    console.log('Initializing route planning UI...');
     
     // Initialize dropdown objects for route planning
     routeDropdowns = {
@@ -88,74 +86,58 @@ function initializeRoutePlanningUI() {
 }
 
 function setupRoutePlanningEventListeners() {
-    console.log('Setting up route planning event listeners...');
     
     // Panel toggle button
     const togglePanelBtn = document.getElementById('toggle-route-panel');
     if (togglePanelBtn) {
-        console.log('Found toggle panel button, adding event listener');
         togglePanelBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Toggle panel button clicked');
             toggleRoutePanel();
         });
     } else {
-        console.error('Toggle panel button not found!');
     }
 
     // Add waypoint button
     const addWaypointBtn = document.getElementById('add-waypoint-btn');
     if (addWaypointBtn) {
-        console.log('Found add waypoint button, adding event listener');
         // Remove any existing event listeners first
         addWaypointBtn.removeEventListener('click', addWaypoint);
         addWaypointBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Add waypoint button clicked');
             addWaypoint();
         });
     } else {
-        console.error('Add waypoint button not found!');
     }
 
     // Calculate route button
     const calculateRouteBtn = document.getElementById('calculate-route-btn');
     if (calculateRouteBtn) {
-        console.log('Found calculate route button, adding event listener');
         calculateRouteBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Calculate route button clicked');
             calculateRoute();
         });
     } else {
-        console.error('Calculate route button not found!');
     }
 
     // Clear route button
     const clearRouteBtn = document.getElementById('clear-route-btn');
     if (clearRouteBtn) {
-        console.log('Found clear route button, adding event listener');
         clearRouteBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Clear route button clicked');
             clearRoute();
         });
     } else {
-        console.error('Clear route button not found!');
     }
 
     // Google Maps button
     const googleMapsBtn = document.getElementById('open-in-google-maps-btn');
     if (googleMapsBtn) {
-        console.log('Found Google Maps button, adding event listener');
         googleMapsBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Google Maps button clicked');
             openInGoogleMaps();
         });
     } else {
-        console.log('Google Maps button not found (this is normal until route is calculated)');
     }
 
     // Setup start and end dropdowns
@@ -167,63 +149,44 @@ function setupRoutePlanningEventListeners() {
 routePlanningActive = true;
 
 function toggleRoutePanel() {
-    console.log('toggleRoutePanel called');
     const panelContent = document.getElementById('route-panel-content');
     const toggleBtn = document.getElementById('toggle-route-panel');
     
     if (!panelContent) {
-        console.error('Panel content not found!');
         return;
     }
     
     if (!toggleBtn) {
-        console.error('Toggle button not found!');
         return;
     }
     
-    console.log('Current collapsed state:', panelContent.classList.contains('collapsed'));
     
     if (panelContent.classList.contains('collapsed')) {
         panelContent.classList.remove('collapsed');
         toggleBtn.textContent = '−';
-        console.log('Panel expanded');
     } else {
         panelContent.classList.add('collapsed');
         toggleBtn.textContent = '+';
-        console.log('Panel collapsed');
     }
 }
 
 function setupRouteDropdown(type) {
-    console.log(`Setting up route dropdown for: ${type}`);
     const dropdown = routeDropdowns[type];
     const inputId = `route-${type}-search`;
     const listId = `route-${type}-list`;
     
-    console.log(`Looking for input: ${inputId}`);
-    console.log(`Looking for list: ${listId}`);
     
     dropdown.input = document.getElementById(inputId);
     dropdown.list = document.getElementById(listId);
 
-    console.log(`Input found: ${!!dropdown.input}`);
-    console.log(`List found: ${!!dropdown.list}`);
-    console.log(`Current options count: ${dropdown.options.length}`);
 
     if (!dropdown.input || !dropdown.list) {
-        console.error(`Route dropdown elements not found for ${type}`);
-        console.error(`Input element: ${dropdown.input}`);
-        console.error(`List element: ${dropdown.list}`);
         return;
     }
 
     // Input event listener for search
-    console.log(`Adding input event listener for ${type}`);
     dropdown.input.addEventListener('input', () => {
-        console.log(`Input event fired for ${type}, value: ${dropdown.input.value}`);
         const searchTerm = dropdown.input.value.toLowerCase();
-        console.log(`Search term: ${searchTerm}`);
-        console.log(`Available options count: ${dropdown.options.length}`);
         
         const filteredOptions = dropdown.options.filter(option => {
             if (!option || !option.name || typeof option.name !== 'string') return false;
@@ -236,7 +199,6 @@ function setupRouteDropdown(type) {
             }
         });
         
-        console.log(`Filtered options count: ${filteredOptions.length}`);
         updateRouteDropdownList(type, filteredOptions);
         dropdown.list.classList.add('show');
     });
@@ -263,7 +225,6 @@ function setupWaypointDropdown(index) {
     waypoint.list = document.getElementById(`route-waypoint-${index}-list`);
 
     if (!waypoint.input || !waypoint.list) {
-        console.error(`Waypoint dropdown elements not found for index ${index}`);
         return;
     }
 
@@ -341,90 +302,34 @@ function updateRouteDropdownList(dropdownKey, options) {
 }
 
 async function populateRouteDropdownOptions() {
-    console.log('Populating route dropdown options...');
     try {
-        // Check if IndexedDB service is available
-        if (!window.indexedDBService || typeof window.indexedDBService.getProjectsFromDB !== 'function') {
-            console.log('IndexedDB service not available yet, will retry...');
+        // Check if filter manager is available
+        if (!window.filterManager || typeof window.filterManager.getAllLocationsForRouting !== 'function') {
             setTimeout(populateRouteDropdownOptions, 500);
             return;
         }
         
-        // Get projects directly from IndexedDB (no API call)
-        const projects = await window.indexedDBService.getProjectsFromDB({});
+        // Get ALL locations with valid coordinates for routing (ignoring filters)
+        const routingData = await window.filterManager.getAllLocationsForRouting();
         
-        console.log('Fetched projects from IndexedDB count:', projects.length);
-        if (projects.length > 0) {
-            console.log('Sample project data:', projects[0]);
-        }
-        
-        // COMMENTED OUT: Resources and billing APIs removed for simplification
-        // const resourcesResponse = await fetchResourcesData({});
-        // const billingResponse = await fetchBillingData({});
-        // const resources = resourcesResponse.data || [];
-        // const billing = billingResponse.data || [];
+        // Use the combined locations (all already filtered by valid coordinates)
+        const allOptions = routingData.combined.map(location => ({
+            id: location.id,
+            name: location.name,
+            lat: location.lat,
+            lng: location.lng,
+            type: location.type,
+            address: location.address,
+            displayText: location.displayText
+        }));
 
-        // Create options for all location types
-        const allOptions = [];
-
-        // Add projects (only those with valid coordinates)
-        projects.forEach(project => {
-            console.log('Processing project for route dropdown:', project);
-            if (project && project.projectName && project.address && hasValidCoordinates(project)) {
-                const option = {
-                    id: project.projectNumber || project.id,
-                    name: project.projectName,
-                    lat: project.lat,
-                    lng: project.lng,
-                    type: 'project',
-                    address: project.address
-                };
-                console.log('Adding project option:', option);
-                allOptions.push(option);
-            } else {
-                console.log('Project skipped - missing data or invalid coordinates:', {
-                    hasName: !!project?.projectName,
-                    hasAddress: !!project?.address,
-                    hasValidCoords: project ? hasValidCoordinates(project) : false,
-                    lat: project?.lat,
-                    lng: project?.lng
-                });
-            }
+        console.log(`Route planning loaded ${allOptions.length} locations:`, {
+            projects: routingData.byType.projects.length,
+            resources: routingData.byType.resources.length,
+            billing: routingData.byType.billing.length,
+            total: allOptions.length
         });
 
-        // COMMENTED OUT: Resources and billing removed for simplification
-        // // Add resources
-        // resources.forEach(location => {
-        //     if (location && location.resource && location.resource.employeeName && location.lat && location.lng) {
-        //         const fullName = `${location.resource.employeeName.firstName || ''} ${location.resource.employeeName.lastName || ''}`.trim();
-        //         const resourceAddress = `${location.resource.addresses?.permanent?.addressLine1 || ''}, ${location.resource.addresses?.permanent?.city || ''}, ${location.resource.addresses?.permanent?.state || ''}`.replace(/^,\s*|,\s*$/g, '');
-        //         allOptions.push({
-        //             id: location.resource.employeeId,
-        //             name: fullName,
-        //             lat: location.lat,
-        //             lng: location.lng,
-        //             type: 'resource',
-        //             address: resourceAddress
-        //         });
-        //     }
-        // });
-
-        // // Add billing locations  
-        // billing.forEach(location => {
-        //     if (location && location.billing && location.billing.resourceName && location.lat && location.lng) {
-        //         allOptions.push({
-        //             id: location.billing.resourceId,
-        //             name: location.billing.resourceName,
-        //             lat: location.lat,
-        //             lng: location.lng,
-        //             type: 'billing',
-        //             address: `Billing for ${location.billing.resourceName}`
-        //         });
-        //     }
-        // });
-
-        console.log('Total route options created:', allOptions.length);
-        console.log('All route options:', allOptions);
 
         // Populate all dropdowns with all options
         routeDropdowns.start.options = allOptions;
@@ -437,33 +342,22 @@ async function populateRouteDropdownOptions() {
             }
         });
         
-        console.log('Route dropdown options populated successfully');
-        console.log('Start dropdown options count:', routeDropdowns.start.options.length);
-        console.log('End dropdown options count:', routeDropdowns.end.options.length);
         
         // Re-setup the dropdowns now that we have data
         if (routeDropdowns.start.input && routeDropdowns.end.input) {
-            console.log('Dropdowns already initialized, options updated');
         } else {
-            console.log('Re-initializing dropdowns with data');
             setupRouteDropdown('start');
             setupRouteDropdown('end');
         }
 
     } catch (error) {
-        console.error("Error populating route dropdown options:", error);
     }
 }
 
 function addWaypoint() {
-    console.log('=== addWaypoint function called ===');
-    console.log('Current waypoint count:', waypointCount);
-    console.log('Active waypoints:', activeWaypoints);
     const waypointsContainer = document.getElementById('route-waypoints-container');
-    console.log('Waypoints container found:', !!waypointsContainer);
     
     if (!waypointsContainer) {
-        console.error('Waypoints container not found!');
         return;
     }
 
@@ -471,7 +365,6 @@ function addWaypoint() {
     activeWaypoints.push(waypointIndex);
     const waypointDisplayNumber = activeWaypoints.length;
     
-    console.log('Creating waypoint with index:', waypointIndex, 'display number:', waypointDisplayNumber);
 
     // Create waypoint HTML with same UI as start/end
     const waypointDiv = document.createElement('div');
@@ -505,11 +398,9 @@ function addWaypoint() {
     routeDropdowns.waypoints[waypointIndex] = waypointDropdown;
     setupWaypointDropdown(waypointIndex);
     
-    console.log('Waypoint added successfully');
 }
 
 function removeWaypoint(index) {
-    console.log('Removing waypoint with index:', index);
     const waypointDiv = document.getElementById(`route-waypoint-${index}`);
     if (waypointDiv) {
         waypointDiv.remove();
@@ -524,14 +415,11 @@ function removeWaypoint(index) {
         // Renumber all remaining waypoints
         renumberWaypoints();
         
-        console.log('Waypoint removed successfully');
     } else {
-        console.error('Waypoint not found:', index);
     }
 }
 
 function renumberWaypoints() {
-    console.log('Renumbering waypoints, active:', activeWaypoints);
     activeWaypoints.forEach((waypointIndex, displayIndex) => {
         const waypointDiv = document.getElementById(`route-waypoint-${waypointIndex}`);
         if (waypointDiv) {
@@ -595,7 +483,6 @@ function calculateRoute() {
                 displayRouteInformation(response);
                 showGoogleMapsButton();
             } else {
-                console.error('Directions request failed due to ' + status);
                 alert('Could not calculate route: ' + status);
             }
         });

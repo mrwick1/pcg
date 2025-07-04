@@ -12,6 +12,14 @@ db.version(3).stores({
     metadata: '++id, tableName, lastSync, recordCount, version'
 });
 
+// Define database schema version 4 - Fixed billing coordinates
+db.version(4).stores({
+    projects: '++id, projectNumber, projectName, projectType, accountName, claimNumber, contactName, address, status, dateOfLoss, insurer, policyNumber, completed, lat, lng, lastUpdated',
+    resources: '++id, employeeName, role, status, employeeType, address, coordinates, lastUpdated',
+    billing: '++id, codeId, status, population, address, lat, lng, lastUpdated',
+    metadata: '++id, tableName, lastSync, recordCount, version'
+});
+
 // Database configuration
 const DB_CONFIG = {
     syncExpiration: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
@@ -20,14 +28,12 @@ const DB_CONFIG = {
 
 // Initialize database and handle errors
 db.open().catch(function(error) {
-    console.error('❌ Failed to open IndexedDB:', error);
 });
 
 // === PROJECTS STORAGE ===
 
 // Store projects data in IndexedDB
 async function storeProjectsData(projectsArray) {
-    console.log(`💾 Storing ${projectsArray.length} projects in IndexedDB...`);
     
     try {
         // Add timestamp to each record
@@ -50,18 +56,15 @@ async function storeProjectsData(projectsArray) {
             });
         });
         
-        console.log(`✅ Successfully stored ${projectsArray.length} projects`);
         return { success: true, count: projectsArray.length };
         
     } catch (error) {
-        console.error('❌ Error storing projects:', error);
         return { success: false, error: error.message };
     }
 }
 
 // Retrieve projects data from IndexedDB with optional filters
 async function getProjectsFromDB(filters = {}) {
-    console.log('🔍 Retrieving projects from IndexedDB with filters:', filters);
     
     try {
         let query = db.projects.toCollection();
@@ -89,13 +92,11 @@ async function getProjectsFromDB(filters = {}) {
         const projects = await query.toArray();
         const total = await db.projects.count();
         
-        console.log(`✅ Retrieved ${projects.length} projects from ${total} total`);
         
         // Return projects array directly to match expected data structure
         return projects;
         
     } catch (error) {
-        console.error('❌ Error retrieving projects:', error);
         // Return empty array on error to match expected data structure
         return [];
     }
@@ -105,13 +106,13 @@ async function getProjectsFromDB(filters = {}) {
 
 // Store resources data in IndexedDB
 async function storeResourcesData(resourcesArray) {
-    console.log(`💾 Storing ${resourcesArray.length} resources in IndexedDB...`);
     
     try {
         const timestampedResources = resourcesArray.map(resource => ({
             ...resource,
             lastUpdated: Date.now()
         }));
+        
         
         await db.transaction('rw', db.resources, db.metadata, async () => {
             await db.resources.clear();
@@ -125,18 +126,15 @@ async function storeResourcesData(resourcesArray) {
             });
         });
         
-        console.log(`✅ Successfully stored ${resourcesArray.length} resources`);
         return { success: true, count: resourcesArray.length };
         
     } catch (error) {
-        console.error('❌ Error storing resources:', error);
         return { success: false, error: error.message };
     }
 }
 
 // Retrieve resources data from IndexedDB with optional filters
 async function getResourcesFromDB(filters = {}) {
-    console.log('🔍 Retrieving resources from IndexedDB with filters:', filters);
     
     try {
         let query = db.resources.toCollection();
@@ -154,7 +152,6 @@ async function getResourcesFromDB(filters = {}) {
         const resources = await query.toArray();
         const total = await db.resources.count();
         
-        console.log(`✅ Retrieved ${resources.length} resources from ${total} total`);
         
         return {
             data: resources,
@@ -164,7 +161,6 @@ async function getResourcesFromDB(filters = {}) {
         };
         
     } catch (error) {
-        console.error('❌ Error retrieving resources:', error);
         return {
             data: [],
             total: 0,
@@ -179,7 +175,6 @@ async function getResourcesFromDB(filters = {}) {
 
 // Store billing data in IndexedDB
 async function storeBillingData(billingArray) {
-    console.log(`💾 Storing ${billingArray.length} billing locations in IndexedDB...`);
     
     try {
         const timestampedBilling = billingArray.map(billing => ({
@@ -199,18 +194,15 @@ async function storeBillingData(billingArray) {
             });
         });
         
-        console.log(`✅ Successfully stored ${billingArray.length} billing locations`);
         return { success: true, count: billingArray.length };
         
     } catch (error) {
-        console.error('❌ Error storing billing data:', error);
         return { success: false, error: error.message };
     }
 }
 
 // Retrieve billing data from IndexedDB with optional filters
 async function getBillingFromDB(filters = {}) {
-    console.log('🔍 Retrieving billing locations from IndexedDB with filters:', filters);
     
     try {
         let query = db.billing.toCollection();
@@ -227,7 +219,6 @@ async function getBillingFromDB(filters = {}) {
         const billing = await query.toArray();
         const total = await db.billing.count();
         
-        console.log(`✅ Retrieved ${billing.length} billing locations from ${total} total`);
         
         return {
             data: billing,
@@ -237,7 +228,6 @@ async function getBillingFromDB(filters = {}) {
         };
         
     } catch (error) {
-        console.error('❌ Error retrieving billing data:', error);
         return {
             data: [],
             total: 0,
@@ -256,19 +246,16 @@ async function needsSync(tableName) {
         const metadata = await db.metadata.where('tableName').equals(tableName).first();
         
         if (!metadata || !metadata.lastSync) {
-            console.log(`📋 ${tableName}: No sync metadata found - needs sync`);
             return true;
         }
         
         const timeSinceSync = Date.now() - metadata.lastSync;
         const needsSync = timeSinceSync > DB_CONFIG.syncExpiration;
         
-        console.log(`📋 ${tableName}: Last sync ${Math.round(timeSinceSync / (60 * 1000))} minutes ago - ${needsSync ? 'needs sync' : 'up to date'}`);
         
         return needsSync;
         
     } catch (error) {
-        console.error(`❌ Error checking sync status for ${tableName}:`, error);
         return true; // Default to needing sync if there's an error
     }
 }
@@ -294,14 +281,12 @@ async function getDBStats() {
         };
         
     } catch (error) {
-        console.error('❌ Error getting database stats:', error);
         return { success: false, error: error.message };
     }
 }
 
 // Clear all data from IndexedDB
 async function clearAllData() {
-    console.log('🗑️ Clearing all IndexedDB data...');
     
     try {
         await db.transaction('rw', [db.projects, db.resources, db.billing, db.metadata], async () => {
@@ -311,11 +296,9 @@ async function clearAllData() {
             await db.metadata.clear();
         });
         
-        console.log('✅ All IndexedDB data cleared');
         return { success: true };
         
     } catch (error) {
-        console.error('❌ Error clearing IndexedDB data:', error);
         return { success: false, error: error.message };
     }
 }
@@ -324,15 +307,12 @@ async function clearAllData() {
 
 // Force refresh by clearing metadata (forces sync on next request)
 async function forceRefresh() {
-    console.log('🔄 Forcing data refresh by clearing sync metadata...');
     
     try {
         await db.metadata.clear();
-        console.log('✅ Sync metadata cleared - next request will fetch fresh data');
         return { success: true };
         
     } catch (error) {
-        console.error('❌ Error forcing refresh:', error);
         return { success: false, error: error.message };
     }
 }
@@ -363,30 +343,20 @@ window.indexedDBService = {
 
 // Debug functions
 window.debugIndexedDB = async function() {
-    console.log('🔍 === INDEXEDDB DEBUG ===');
     
     const stats = await getDBStats();
-    console.log('📊 Database Stats:', stats);
     
     if (stats.success) {
-        console.log(`📋 Total Records: ${stats.total}`);
-        console.log(`  - Projects: ${stats.projects}`);
-        console.log(`  - Resources: ${stats.resources}`);
-        console.log(`  - Billing: ${stats.billing}`);
         
         if (stats.metadata.length > 0) {
-            console.log('📋 Sync Status:');
             stats.metadata.forEach(meta => {
                 const lastSync = new Date(meta.lastSync);
-                console.log(`  - ${meta.tableName}: ${meta.recordCount} records, synced ${lastSync.toLocaleString()}`);
             });
         }
     }
     
-    console.log('🔍 === DEBUG COMPLETE ===');
 };
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('💾 IndexedDB Service loaded (Dexie.js)');
 });

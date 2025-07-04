@@ -16,14 +16,12 @@ const geocodingService = {
             
             // Try Zoho API invoke method first (for widget environment)
             if (typeof ZOHO !== 'undefined' && ZOHO.CREATOR && ZOHO.CREATOR.API) {
-                console.log('Using Zoho API invoke method');
                 const response = await ZOHO.CREATOR.API.invoke({
                     url: url,
                     type: 'GET'
                 });
                 
                 if (response.code === 200) {
-                    console.log('Geocoding API called for address:', address);
                     return response.data;
                 }
                 throw new Error(`Zoho API error: ${response.code}`);
@@ -37,12 +35,10 @@ const geocodingService = {
             }
             
             const data = await response.json();
-            console.log('Geocoding API called for address:', address);
             
             return data;
             
         } catch (error) {
-            console.error('Geocoding error for address:', address, error);
             
             return {
                 status: { code: 200, message: 'OK' },
@@ -101,7 +97,6 @@ const geocodingService = {
             return results;
             
         } catch (error) {
-            console.error('Batch geocoding failed:', error);
             return {
                 error: `Batch geocoding failed: ${error.message}`,
                 results: []

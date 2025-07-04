@@ -60,6 +60,12 @@
             <div class="filter-group">
                 <h3>Resources</h3>
                 <div class="filter-group-content">
+                    <label for="resource-search">Search by resource:</label>
+                    <div class="searchable-dropdown" id="resource-search-dropdown">
+                        <input type="text" id="resource-search" placeholder="Search by employee name or role...">
+                        <div class="dropdown-list" id="resource-search-list"></div>
+                    </div>
+                    
                     <label for="user-role-search">User Role:</label>
                     <div class="searchable-dropdown" id="user-role-dropdown">
                         <input type="text" id="user-role-search" placeholder="Search user role...">
@@ -83,17 +89,12 @@
             <div class="filter-group">
                 <h3>Billing</h3>
                 <div class="filter-group-content">
-                    <label for="billing-status-search">Billing Status:</label>
-                    <div class="searchable-dropdown" id="billing-status-dropdown">
-                        <input type="text" id="billing-status-search" placeholder="Search billing status...">
-                        <div class="dropdown-list" id="billing-status-list"></div>
+                    <label for="billing-search">Search by billing location:</label>
+                    <div class="searchable-dropdown" id="billing-search-dropdown">
+                        <input type="text" id="billing-search" placeholder="Search by location ID or address...">
+                        <div class="dropdown-list" id="billing-search-list"></div>
                     </div>
-
-                    <label for="payment-type-search">Payment Type:</label>
-                    <div class="searchable-dropdown" id="payment-type-dropdown">
-                        <input type="text" id="payment-type-search" placeholder="Search payment type...">
-                        <div class="dropdown-list" id="payment-type-list"></div>
-                    </div>
+                    
                 </div>
             </div>
 

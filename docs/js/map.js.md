@@ -52,21 +52,14 @@ Displays user-friendly error messages when map initialization fails.
 ## Marker Management
 
 ### getMarkerStyle(location, markerType)
-Determines marker appearance based on type and status.
-
-**Project Status Colors:**
-- **Completed**: `#4CAF50` (Green)
-- **Live**: `#FF9800` (Orange)  
-- **Archived**: `#9E9E9E` (Gray)
-- **Cancelled**: `#F44336` (Red)
-- **Suspended**: `#FFC107` (Amber/Yellow)
-- **In Progress**: `#2196F3` (Blue)
-- **Unknown**: `#424242` (Dark gray)
+Determines marker appearance based on type. All markers use consistent colors regardless of status.
 
 **Marker Types:**
-- **Project (P)**: Status-based colors with 'P' glyph
+- **Project (P)**: `#4CAF50` (Green) with 'P' glyph - consistent color for all project statuses
 - **Resource (R)**: `#9C27B0` (Purple) with 'R' glyph
 - **Billing (B)**: `#FF9800` (Orange) with 'B' glyph
+
+**Note:** Project markers no longer use status-based colors. All projects display with green markers to maintain visual consistency while status information is available through filtering and info windows.
 
 ### addMarkerToMap(location, markerType = 'project')
 Creates and adds custom markers to the map with advanced features.
@@ -106,7 +99,7 @@ Main function for loading and displaying filtered data on the map.
 **Data Sources:**
 - **Projects**: `getProjectsData()` with filtering support
 - **Resources**: `getResourcesData()` with filtering support
-- **Billing**: Currently commented out for simplification
+- **Billing**: `getBillingData()` with filtering support
 
 **Smart Zoom Behavior:**
 - **Single Project Selection**: Zoom to level 15
@@ -135,6 +128,24 @@ Comprehensive project information display:
     actions: [
         "Get Directions button",
         "View Summary button"
+    ]
+}
+```
+
+### Billing Info Windows
+Billing location information display:
+
+```javascript
+{
+    header: "Billing icon + code ID + status",
+    content: {
+        codeId: "Location identifier",
+        population: "Area population data",
+        status: "Location status (Active/Inactive)",
+        address: "Billing location address"
+    },
+    actions: [
+        "Get Directions button"
     ]
 }
 ```

@@ -7,17 +7,18 @@ Comprehensive IndexedDB service using Dexie.js for high-performance local storag
 
 ### Database Configuration
 - **Database Name**: `PCGDatabase`
-- **Version**: 3
+- **Version**: 4 (current)
 - **Technology**: Dexie.js (IndexedDB wrapper)
 - **Sync Expiration**: 30 days
 - **Batch Size**: 1000 records
 
 ### Table Definitions
 ```javascript
+// Version 4 (Current)
 {
     projects: '++id, projectNumber, projectName, projectType, accountName, claimNumber, contactName, address, status, dateOfLoss, insurer, policyNumber, completed, lat, lng, lastUpdated',
     resources: '++id, employeeName, role, status, employeeType, address, coordinates, lastUpdated',
-    billing: '++id, codeId, status, population, address, coordinates, lastUpdated',
+    billing: '++id, codeId, status, population, address, lat, lng, lastUpdated',  // Fixed: separate lat/lng
     metadata: '++id, tableName, lastSync, recordCount, version'
 }
 ```
