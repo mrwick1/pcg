@@ -25,7 +25,7 @@
 
                     <!-- Filter groups directly stacked -->
                     <div class="filter-group">
-                        <h3>Projects</h3>
+                        <h3>Projects <span class="filter-count" id="projects-count">(0)</span></h3>
                         <div class="filter-group-content">
                             <label for="project-search">Search by project:</label>
                             <div class="searchable-dropdown" id="project-search-dropdown">
@@ -54,7 +54,7 @@
                     </div>
 
                     <div class="filter-group">
-                        <h3>Resources</h3>
+                        <h3>Resources <span class="filter-count" id="resources-count">(0)</span></h3>
                         <div class="filter-group-content">
                             <label for="resource-search">Search by resource:</label>
                             <div class="searchable-dropdown" id="resource-search-dropdown">
@@ -83,7 +83,7 @@
                     </div>
 
                     <div class="filter-group">
-                        <h3>Billing</h3>
+                        <h3>Billing <span class="filter-count" id="billing-count">(0)</span></h3>
                         <div class="filter-group-content">
                             <label for="billing-search">Search by billing location:</label>
                             <div class="searchable-dropdown" id="billing-search-dropdown">
@@ -103,23 +103,6 @@
                 </aside>
 
                 <main id="map-container">
-                    <!-- Map Legend -->
-                    <div class="map-legend">
-                        <h4>Legend</h4>
-                        <div class="legend-item">
-                            <span class="legend-color" style="background-color: #4CAF50;"></span>
-                            <span>Project Location (P)</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color" style="background-color: #9C27B0;"></span>
-                            <span>Resource Location (R)</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color" style="background-color: #FF9800;"></span>
-                            <span>Billing Location (B)</span>
-                        </div>
-                    </div>
-                    
                     <!-- Route Planning Panel -->
                     <div class="route-planning-panel" id="route-planning-panel">
                         <div class="route-panel-header">
@@ -169,6 +152,7 @@
                     <div class="map-legend" id="map-legend">
                         <div class="legend-header">
                             <span>Legend</span>
+                            <button class="toggle-legend" id="toggle-legend">−</button>
                         </div>
                         <div class="legend-content" id="legend-content">
                             <div class="legend-item">

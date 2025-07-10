@@ -16,6 +16,14 @@ db.version(4).stores({
     billing: '++id, codeId, status, population, address, lat, lng, lastUpdated',
     metadata: '++id, tableName, lastSync, recordCount, version'
 });
+
+// Define database schema version 5 - Added multi-status support for projects
+db.version(5).stores({
+    projects: '++id, projectNumber, projectName, projectType, accountName, claimNumber, contactName, address, status, statuses, primaryStatus, displayStatus, dateOfLoss, insurer, policyNumber, completed, lat, lng, lastUpdated',
+    resources: '++id, employeeName, role, status, employeeType, address, coordinates, lastUpdated',
+    billing: '++id, codeId, status, population, address, lat, lng, lastUpdated',
+    metadata: '++id, tableName, lastSync, recordCount, version'
+});
 // Database configuration
 const DB_CONFIG = {
     syncExpiration: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
@@ -56,7 +64,14 @@ async function getProjectsFromDB(filters = {}) {
         let query = db.projects.toCollection();
         // Apply filters
         if (filters.status) {
-            query = query.filter(p => p.status === filters.status);
+            query = query.filter(p => {
+                // Support both new multi-status and old single status for backward compatibility
+                if (p.statuses && Array.isArray(p.statuses)) {
+                    return p.statuses.includes(filters.status);
+                } else {
+                    return p.status === filters.status;
+                }
+            });
         }
         if (filters.projectNumber) {
             query = query.filter(p => 

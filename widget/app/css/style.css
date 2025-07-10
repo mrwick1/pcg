@@ -114,6 +114,21 @@ body {
     margin-bottom: 15px;
 }
 
+/* Filter count badges */
+.filter-count {
+    background-color: #f0f4f8;
+    color: #2561a3;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.85em;
+    font-weight: 500;
+    margin-left: 10px;
+    display: inline-block;
+    border: 1px solid #d1dbe6;
+    vertical-align: middle;
+    line-height: 1;
+}
+
 .filter-group h4 {
     color: var(--secondary-blue);
     margin: 15px 0 10px;
@@ -314,6 +329,38 @@ button:hover {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-color);
+}
+
+/* Legend header with toggle button */
+.legend-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+/* Legend toggle button */
+.toggle-legend {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    margin: 0;
+    width: auto;
+}
+
+.toggle-legend:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Legend content collapsed state */
+.legend-content.collapsed {
+    display: none;
 }
 
 .legend-item {

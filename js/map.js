@@ -71,6 +71,15 @@ function initializeMap() {
             );
         });
     }
+    
+    // Setup legend toggle event listener
+    const toggleLegendBtn = document.getElementById('toggle-legend');
+    if (toggleLegendBtn) {
+        toggleLegendBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleLegend();
+        });
+    }
     map.addListener('click', (e) => {
         if (contextMenu) {
             contextMenu.style.display = 'none';
@@ -167,14 +176,17 @@ function addMarkerToMap(location, markerType = 'project') {
             const projectName = location.projectName || 'Unknown Project';
             const projectNumber = location.projectNumber || 'N/A';
             const projectAddress = location.address || 'Address not available';
-            const status = location.status || 'N/A';
+            // Use displayStatus for combined status display, fallback to status for backward compatibility
+            const displayStatus = location.displayStatus || location.status || 'N/A';
+            // Use primaryStatus for CSS styling, fallback to status for backward compatibility
+            const primaryStatus = location.primaryStatus || location.status || 'N/A';
             const accountName = location.accountName || 'N/A';
             const projectType = location.projectType || 'N/A';
             const claimNumber = location.claimNumber || 'N/A';
             const contactName = location.contactName || 'N/A';
             const dateOfLoss = location.dateOfLoss || null;
             const insurer = location.insurer || 'N/A';
-            const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+            const statusClass = primaryStatus.toLowerCase().replace(/\s+/g, '-');
             content = `
                 <div class="project-info-window">
                     <div class="info-header status-${statusClass}">
@@ -183,7 +195,7 @@ function addMarkerToMap(location, markerType = 'project') {
                         </div>
                         <div class="project-title">
                             <h3>${projectName}</h3>
-                            <span class="project-status status-${statusClass}">${status}</span>
+                            <span class="project-status status-${statusClass}">${displayStatus}</span>
                         </div>
                     </div>
                     <div class="info-content">
@@ -254,7 +266,7 @@ function addMarkerToMap(location, markerType = 'project') {
                         </div>
                         <div class="project-title">
                             <h3>${fullName || 'Unknown Employee'}</h3>
-                            <span class="project-status status-${statusClass}">${status}</span>
+                            <span class="project-status status-${statusClass}">${displayStatus}</span>
                         </div>
                     </div>
                     <div class="info-content">
@@ -434,8 +446,16 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
         const projectLocations = projectResponse.data || [];
         
         // Count all projects by status (including those without coordinates)
+        // For dual-status projects, count them in each applicable status
         const allProjectsByStatus = projectLocations.reduce((acc, p) => {
-            acc[p.status] = (acc[p.status] || 0) + 1;
+            if (p.statuses && Array.isArray(p.statuses)) {
+                p.statuses.forEach(status => {
+                    acc[status] = (acc[status] || 0) + 1;
+                });
+            } else {
+                // Fallback for backward compatibility
+                acc[p.status] = (acc[p.status] || 0) + 1;
+            }
             return acc;
         }, {});
         const resourcesResponse = await getResourcesData({
@@ -461,8 +481,16 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
                 projectsWithCoords++;
                 
                 // Count projects with coordinates by status
-                const status = location.status || 'Unknown';
-                projectsOnMapByStatus[status] = (projectsOnMapByStatus[status] || 0) + 1;
+                // For dual-status projects, count them in each applicable status
+                if (location.statuses && Array.isArray(location.statuses)) {
+                    location.statuses.forEach(status => {
+                        projectsOnMapByStatus[status] = (projectsOnMapByStatus[status] || 0) + 1;
+                    });
+                } else {
+                    // Fallback for backward compatibility
+                    const status = location.status || 'Unknown';
+                    projectsOnMapByStatus[status] = (projectsOnMapByStatus[status] || 0) + 1;
+                }
             } else {
                 projectsWithoutCoords++;
             }
@@ -491,6 +519,10 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
                 billingSkippedCount++;
             }
         }
+        
+        // Update filter counts after all data is processed
+        updateFilterCounts(projectsWithCoords, addedCount, billingAddedCount);
+        
         if (activeMarkers.length > 0 && google && google.maps) {
             // Handle specific zoom cases for project and resource selection
             if (changedFilter === 'projectSearch' && filters.pccNumber) {
@@ -573,6 +605,42 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
     } catch (error) {
     }
 }
+
+// Update filter count badges with current marker counts
+function updateFilterCounts(projectCount, resourceCount, billingCount) {
+    const projectsCountEl = document.getElementById('projects-count');
+    const resourcesCountEl = document.getElementById('resources-count');
+    const billingCountEl = document.getElementById('billing-count');
+    
+    if (projectsCountEl) {
+        projectsCountEl.textContent = `(${projectCount})`;
+    }
+    if (resourcesCountEl) {
+        resourcesCountEl.textContent = `(${resourceCount})`;
+    }
+    if (billingCountEl) {
+        billingCountEl.textContent = `(${billingCount})`;
+    }
+}
+
+// Toggle legend visibility
+function toggleLegend() {
+    const legendContent = document.getElementById('legend-content');
+    const toggleBtn = document.getElementById('toggle-legend');
+    
+    if (!legendContent || !toggleBtn) {
+        return;
+    }
+    
+    if (legendContent.classList.contains('collapsed')) {
+        legendContent.classList.remove('collapsed');
+        toggleBtn.textContent = '−';
+    } else {
+        legendContent.classList.add('collapsed');
+        toggleBtn.textContent = '+';
+    }
+}
+
 function handleViewDetails() {
     if (selectedMarker) {
         const location = selectedMarker.location;
@@ -582,14 +650,17 @@ function handleViewDetails() {
             const projectName = location.projectName || 'Unknown Project';
             const projectNumber = location.projectNumber || 'N/A';
             const projectAddress = location.address || 'Address not available';
-            const status = location.status || 'N/A';
+            // Use displayStatus for combined status display, fallback to status for backward compatibility
+            const displayStatus = location.displayStatus || location.status || 'N/A';
+            // Use primaryStatus for CSS styling, fallback to status for backward compatibility  
+            const primaryStatus = location.primaryStatus || location.status || 'N/A';
             const accountName = location.accountName || 'N/A';
             const projectType = location.projectType || 'N/A';
             const claimNumber = location.claimNumber || 'N/A';
             const contactName = location.contactName || 'N/A';
             const dateOfLoss = location.dateOfLoss || null;
             const insurer = location.insurer || 'N/A';
-            const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+            const statusClass = primaryStatus.toLowerCase().replace(/\s+/g, '-');
             content = `
                 <div class="project-info-window">
                     <div class="info-header status-${statusClass}">
@@ -598,7 +669,7 @@ function handleViewDetails() {
                         </div>
                         <div class="project-title">
                             <h3>${projectName}</h3>
-                            <span class="project-status status-${statusClass}">${status}</span>
+                            <span class="project-status status-${statusClass}">${displayStatus}</span>
                         </div>
                     </div>
                     <div class="info-content">
@@ -669,7 +740,7 @@ function handleViewDetails() {
                         </div>
                         <div class="project-title">
                             <h3>${fullName || 'Unknown Employee'}</h3>
-                            <span class="project-status status-${statusClass}">${status}</span>
+                            <span class="project-status status-${statusClass}">${displayStatus}</span>
                         </div>
                     </div>
                     <div class="info-content">
@@ -816,7 +887,7 @@ window.viewProjectSummary = function(projectId) {
                     <span class="project-detail-value">${project.projectNumber || 'N/A'}</span>
                     <span class="project-detail-label">Status:</span>
                     <span class="project-detail-value">
-                        <span class="project-status-badge status-${statusClass}">${project.status || 'Unknown'}</span>
+                        <span class="project-status-badge status-${statusClass}">${project.displayStatus || project.status || 'Unknown'}</span>
                     </span>
                     <span class="project-detail-label">Project Type:</span>
                     <span class="project-detail-value">${project.projectType || 'N/A'}</span>

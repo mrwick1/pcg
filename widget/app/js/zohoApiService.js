@@ -310,47 +310,101 @@ function determineProjectStatus(project) {
     const projectCancelledDate = project["PS_5.Project_Cancelled_Date"];
     const projectSuspended = project["PS_5.Project_Suspended"];
     const suspendedReleasedOn = project["PS_5.Suspended_Projects_Released_On"];
+    const projectCompleted = project.Project_Completed === 'true' || project.Project_Completed === true;
     
     // All status types require location validation
-    
-    // 1. Cancelled Projects (highest priority)
-    if (hasValidLocation &&
-        projectCancelled === true && 
-        projectCancelledDate !== null && projectCancelledDate !== undefined && projectCancelledDate !== '') {
-        return 'Cancelled';
+    if (!hasValidLocation) {
+        return {
+            statuses: ['Unknown'],
+            primaryStatus: 'Unknown',
+            displayStatus: 'Unknown'
+        };
     }
     
-    // 2. Suspended Projects
-    if (hasValidLocation &&
-        projectSuspended !== null && projectSuspended !== undefined && projectSuspended !== '' &&
+    const statuses = [];
+    
+    // 1. Cancelled Projects (highest priority - exclusive)
+    if (projectCancelled === true && 
+        projectCancelledDate !== null && projectCancelledDate !== undefined && projectCancelledDate !== '') {
+        return {
+            statuses: ['Cancelled'],
+            primaryStatus: 'Cancelled',
+            displayStatus: 'Cancelled'
+        };
+    }
+    
+    // 2. Suspended Projects (exclusive)
+    if (projectSuspended !== null && projectSuspended !== undefined && projectSuspended !== '' &&
         (transmittedToClient === null || transmittedToClient === undefined || transmittedToClient === '') &&
         (suspendedReleasedOn === null || suspendedReleasedOn === undefined || suspendedReleasedOn === '')) {
-        return 'Suspended';
+        return {
+            statuses: ['Suspended'],
+            primaryStatus: 'Suspended',
+            displayStatus: 'Suspended'
+        };
     }
     
-    // 3. Archived Projects (priority over Completed - transmitted projects regardless of completion)
-    if (hasValidLocation &&
-        (transmittedToClient !== null && transmittedToClient !== undefined && transmittedToClient !== '') && 
+    // 3. Check for Archived status
+    if ((transmittedToClient !== null && transmittedToClient !== undefined && transmittedToClient !== '') && 
         projectCancelled === false) {
-        return 'Archived';
+        statuses.push('Archived');
+        // Log all archived projects for debugging
+        console.log('Found Archived project:', {
+            projectNumber: project.Project_Number,
+            projectName: project.Project_Name,
+            transmitted: transmittedToClient,
+            cancelled: projectCancelled,
+            completed: projectCompleted
+        });
     }
     
-    // 4. Completed Projects (only if not already archived)
-    if (hasValidLocation && (project.Project_Completed === 'true' || project.Project_Completed === true)) {
-        return 'Completed';
+    // 4. Check for Completed status
+    if (projectCompleted) {
+        statuses.push('Completed');
     }
     
-    // 5. Live Projects
-    if (hasValidLocation &&
+    // 5. Check for Live status (if no other status applies)
+    if (statuses.length === 0 &&
         (transmittedToClient === null || transmittedToClient === undefined || transmittedToClient === '') &&
         projectCancelled === false &&
         (projectCancelledDate === null || projectCancelledDate === undefined || projectCancelledDate === '') &&
         (projectSuspended === null || projectSuspended === undefined || projectSuspended === '')) {
-        return 'Live';
+        statuses.push('Live');
     }
     
-    // If none of the conditions match, return Unknown
-    return 'Unknown';
+    // If no statuses determined, return Unknown
+    if (statuses.length === 0) {
+        return {
+            statuses: ['Unknown'],
+            primaryStatus: 'Unknown',
+            displayStatus: 'Unknown'
+        };
+    }
+    
+    // Order statuses for consistent display (Completed first, then Archived)
+    const orderedStatuses = [];
+    if (statuses.includes('Completed')) orderedStatuses.push('Completed');
+    if (statuses.includes('Archived')) orderedStatuses.push('Archived');
+    if (statuses.includes('Live')) orderedStatuses.push('Live');
+    
+    const result = {
+        statuses: orderedStatuses.length > 0 ? orderedStatuses : statuses,
+        primaryStatus: orderedStatuses[0] || statuses[0],
+        displayStatus: orderedStatuses.join(' & ') || statuses.join(' & ')
+    };
+    
+    // Debug logging for first few projects
+    if (Math.random() < 0.01) { // Log ~1% of projects to avoid spam
+        console.log('Project status determination:', {
+            projectNumber: project.Project_Number,
+            completed: project.Project_Completed,
+            transmitted: project["PS_5.Transmitted_Report_and_Invoice_to_the_Client"],
+            cancelled: project["PS_5.Project_Cancelled"],
+            result: result
+        });
+    }
+    
+    return result;
 }
 // Process raw project data into structured format
 function processProjectData(rawProjects) {
@@ -362,7 +416,7 @@ function processProjectData(rawProjects) {
         const lat = (rawLat && rawLat !== '') ? Number.parseFloat(rawLat) : null;
         const lng = (rawLng && rawLng !== '') ? Number.parseFloat(rawLng) : null;
         // Calculate status based on business logic
-        const calculatedStatus = determineProjectStatus(project);
+        const statusResult = determineProjectStatus(project);
         return {
             id: project.ID,
             projectNumber: project.Project_Number,
@@ -372,7 +426,12 @@ function processProjectData(rawProjects) {
             claimNumber: project.Claim_Number,
             contactName: project.Contact_Name,
             address: project.Loss_Location_Street_Address,
-            status: calculatedStatus,
+            // New multi-status fields
+            statuses: statusResult.statuses,
+            primaryStatus: statusResult.primaryStatus,
+            displayStatus: statusResult.displayStatus,
+            // Maintain backward compatibility
+            status: statusResult.primaryStatus,
             dateOfLoss: project.Date_of_Loss,
             insurer: project.Insurer,
             policyNumber: project.Policy_Number,
@@ -450,7 +509,20 @@ async function getProjectsDataDirect(filters = {}) {
         // Apply filters
         let filteredProjects = processedProjects;
         if (filters.status) {
-            filteredProjects = filteredProjects.filter(p => p.status === filters.status);
+            console.log('Filtering projects by status:', filters.status);
+            console.log('Available projects before filtering:', processedProjects.map(p => ({
+                id: p.id,
+                name: p.projectName,
+                statuses: p.statuses,
+                displayStatus: p.displayStatus
+            })));
+            filteredProjects = filteredProjects.filter(p => p.statuses && p.statuses.includes(filters.status));
+            console.log('Projects after filtering:', filteredProjects.map(p => ({
+                id: p.id,
+                name: p.projectName,
+                statuses: p.statuses,
+                displayStatus: p.displayStatus
+            })));
         }
         if (filters.projectNumber) {
             filteredProjects = filteredProjects.filter(p => 
