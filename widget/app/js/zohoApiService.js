@@ -1,6 +1,5 @@
 // Simplified Zoho Creator API Service - Functional Approach
 // Focused only on All_Projects API calls
-
 // Global configuration
 const ZOHO_CONFIG = {
     appName: 'pemo',
@@ -8,49 +7,38 @@ const ZOHO_CONFIG = {
     customersReportName: 'All_Customers',
     billingReportName: 'All_Billing_Locations'
 };
-
 // Request deduplication to prevent multiple simultaneous API calls
 let ongoingAPIRequest = null;
 let ongoingResourcesAPIRequest = null;
 let ongoingBillingAPIRequest = null;
-
 // Check if Zoho Creator API is available
 function isZohoAPIAvailable() {
     return typeof ZOHO !== 'undefined' && 
            ZOHO.CREATOR && 
            (ZOHO.CREATOR.DATA?.getRecords || ZOHO.CREATOR.PUBLISH?.getRecords);
 }
-
 // Initialize and test Zoho API
 async function initializeZohoAPI() {
-    
     if (!isZohoAPIAvailable()) {
         return false;
     }
-    
-    
     // Test API methods
     if (ZOHO.CREATOR.DATA?.getRecords) {
         return true;
     } else if (ZOHO.CREATOR.PUBLISH?.getRecords) {
         return true;
     }
-    
     return false;
 }
-
 // Make API call to fetch All_Projects data with pagination
 async function fetchAllProjectsData() {
-    
     if (!isZohoAPIAvailable()) {
         return getMockProjectsData();
     }
-    
     let allRecords = [];
     let recordCursor = null;
     let pageNumber = 1;
     let hasMoreRecords = true;
-    
     while (hasMoreRecords) {
         // Build config for this page
         const config = {
@@ -58,15 +46,11 @@ async function fetchAllProjectsData() {
             report_name: ZOHO_CONFIG.projectsReportName,
             max_records: 1000
         };
-        
         // Add record_cursor for subsequent pages
         if (recordCursor) {
             config.record_cursor = recordCursor;
         }
-        
-        
         let pageResponse = null;
-        
         // Try DATA.getRecords first
         if (ZOHO.CREATOR.DATA?.getRecords) {
             try {
@@ -74,7 +58,6 @@ async function fetchAllProjectsData() {
             } catch (error) {
             }
         }
-        
         // Try PUBLISH.getRecords as fallback
         if (!pageResponse && ZOHO.CREATOR.PUBLISH?.getRecords) {
             try {
@@ -82,26 +65,20 @@ async function fetchAllProjectsData() {
             } catch (error) {
             }
         }
-        
         if (!pageResponse) {
             break;
         }
-        
         // Process this page's response
         const processedPage = processAPIResponse(pageResponse);
-        
         if (processedPage.data && processedPage.data.length > 0) {
             allRecords = allRecords.concat(processedPage.data);
-            
             // Check for pagination cursor in response
             recordCursor = extractRecordCursor(pageResponse);
-            
             if (recordCursor) {
                 pageNumber++;
             } else {
                 hasMoreRecords = false;
             }
-            
             // Safety check to prevent infinite loops
             if (pageNumber > 50) {
                 hasMoreRecords = false;
@@ -110,8 +87,6 @@ async function fetchAllProjectsData() {
             hasMoreRecords = false;
         }
     }
-    
-    
     return {
         data: allRecords,
         success: allRecords.length > 0,
@@ -120,7 +95,6 @@ async function fetchAllProjectsData() {
         totalRecords: allRecords.length
     };
 }
-
 // Helper function to extract record_cursor from API response
 function extractRecordCursor(response) {
     // Check various possible cursor field names based on Zoho API documentation
@@ -139,15 +113,12 @@ function extractRecordCursor(response) {
     if (response && response.pagination && response.pagination.record_cursor) {
         return response.pagination.record_cursor;
     }
-    
     // Check if there are more records available (some APIs use has_more flag)
     if (response && response.has_more === false) {
         return null;
     }
-    
     return null;
 }
-
 // Process API response to extract data
 function processAPIResponse(response) {
     if (response && response.data && Array.isArray(response.data)) {
@@ -160,7 +131,6 @@ function processAPIResponse(response) {
         return { data: [], success: false };
     }
 }
-
 // Mock data for testing when API is not available
 function getMockProjectsData() {
     return {
@@ -262,7 +232,26 @@ function getMockProjectsData() {
             },
             {
                 ID: "mock6",
-                Project_Number: "06137",
+                Project_Number: "06137", 
+                Project_Name: "Another Archived Project",
+                Loss_Location_Street_Address: "222 Archive Ave, Tampa, FL 33602",
+                Latitude: "27.9478",
+                Longitude: "-82.4584",
+                Account_Name: "Archive Holdings Inc",
+                Claim_Number: "HO0525434999",
+                Insurer: "Archive Insurance Co",
+                Type_of_Report: "(20-04) Long-form Report (default)",
+                Project_Completed: "false",
+                "PS_5.Transmitted_Report_and_Invoice_to_the_Client": "2025-05-15",
+                "PS_5.Project_Cancelled": "false",
+                "PS_5.Project_Cancelled_Date": null,
+                "PS_5.Project_Suspended": null,
+                Contact_Name: "Archive Manager",
+                Date_of_Loss: "May 1,2025"
+            },
+            {
+                ID: "mock7",
+                Project_Number: "06138",
                 Project_Name: "Suspended Project",
                 Loss_Location_Street_Address: "654 Bay Avenue, Naples, FL 34102",
                 Latitude: "26.1420",
@@ -285,29 +274,24 @@ function getMockProjectsData() {
         mock: true
     };
 }
-
-
 // Test function for billing API
 window.testBillingAPI = async function() {
     console.log('Billing API - Starting test...');
     try {
         const result = await fetchAllBillingData();
         console.log('Billing API - Test result:', result);
-        
         if (result.data.length > 0) {
             console.log(`Billing API - Test success: ${result.data.length} records retrieved`);
             console.log('Billing API - Sample record:', result.data[0]);
         } else {
             console.warn('Billing API - Test warning: No records retrieved');
         }
-        
         return result;
     } catch (error) {
         console.error('Billing API - Test error:', error);
         return null;
     }
 };
-
 // Helper function to determine project status based on business logic
 function determineProjectStatus(project) {
     // Extract location fields
@@ -320,12 +304,6 @@ function determineProjectStatus(project) {
                            (latitude && latitude !== '') && 
                            (longitude && longitude !== '');
     
-    // 1. Completed Projects (highest priority)
-    // Conditions: address not empty, latitude not empty, longitude not empty, Project_Completed is true
-    if (hasValidLocation && (project.Project_Completed === 'true' || project.Project_Completed === true)) {
-        return 'Completed';
-    }
-    
     // Extract PS_5 fields
     const transmittedToClient = project["PS_5.Transmitted_Report_and_Invoice_to_the_Client"];
     const projectCancelled = project["PS_5.Project_Cancelled"] === 'true' || project["PS_5.Project_Cancelled"] === true;
@@ -333,18 +311,16 @@ function determineProjectStatus(project) {
     const projectSuspended = project["PS_5.Project_Suspended"];
     const suspendedReleasedOn = project["PS_5.Suspended_Projects_Released_On"];
     
-    // All status types now require location validation (address, latitude, longitude not empty)
+    // All status types require location validation
     
-    // 2. Cancelled Projects
-    // Conditions: address not empty, latitude not empty, longitude not empty, cancelled is true, cancelled date not empty
+    // 1. Cancelled Projects (highest priority)
     if (hasValidLocation &&
         projectCancelled === true && 
         projectCancelledDate !== null && projectCancelledDate !== undefined && projectCancelledDate !== '') {
         return 'Cancelled';
     }
     
-    // 3. Suspended Projects
-    // Conditions: address not empty, latitude not empty, longitude not empty, suspended not empty, transmitted empty, released empty
+    // 2. Suspended Projects
     if (hasValidLocation &&
         projectSuspended !== null && projectSuspended !== undefined && projectSuspended !== '' &&
         (transmittedToClient === null || transmittedToClient === undefined || transmittedToClient === '') &&
@@ -352,16 +328,19 @@ function determineProjectStatus(project) {
         return 'Suspended';
     }
     
-    // 4. Archived Projects
-    // Conditions: address not empty, latitude not empty, longitude not empty, transmitted not empty, not cancelled
+    // 3. Archived Projects (priority over Completed - transmitted projects regardless of completion)
     if (hasValidLocation &&
         (transmittedToClient !== null && transmittedToClient !== undefined && transmittedToClient !== '') && 
         projectCancelled === false) {
         return 'Archived';
     }
     
+    // 4. Completed Projects (only if not already archived)
+    if (hasValidLocation && (project.Project_Completed === 'true' || project.Project_Completed === true)) {
+        return 'Completed';
+    }
+    
     // 5. Live Projects
-    // Conditions: address not empty, latitude not empty, longitude not empty, plus PS_5 conditions
     if (hasValidLocation &&
         (transmittedToClient === null || transmittedToClient === undefined || transmittedToClient === '') &&
         projectCancelled === false &&
@@ -373,38 +352,17 @@ function determineProjectStatus(project) {
     // If none of the conditions match, return Unknown
     return 'Unknown';
 }
-
 // Process raw project data into structured format
 function processProjectData(rawProjects) {
-    
     const processedProjects = rawProjects.map((project, index) => {
         // Extract and validate coordinates
         const rawLat = project.Latitude;
         const rawLng = project.Longitude;
-        
         // Convert to numbers, set to null if empty/invalid
         const lat = (rawLat && rawLat !== '') ? Number.parseFloat(rawLat) : null;
         const lng = (rawLng && rawLng !== '') ? Number.parseFloat(rawLng) : null;
-        
         // Calculate status based on business logic
         const calculatedStatus = determineProjectStatus(project);
-        
-        // Debug: Log first few projects to see mapping
-        if (index < 3) {
-            console.log(`Project ${index} status calculation:`, {
-                projectNumber: project.Project_Number,
-                address: project.Loss_Location_Street_Address,
-                latitude: project.Latitude,
-                longitude: project.Longitude,
-                completed: project.Project_Completed,
-                transmitted: project["PS_5.Transmitted_Report_and_Invoice_to_the_Client"],
-                cancelled: project["PS_5.Project_Cancelled"],
-                cancelledDate: project["PS_5.Project_Cancelled_Date"],
-                suspended: project["PS_5.Project_Suspended"],
-                calculatedStatus: calculatedStatus
-            });
-        }
-        
         return {
             id: project.ID,
             projectNumber: project.Project_Number,
@@ -432,49 +390,30 @@ function processProjectData(rawProjects) {
             }
         };
     });
-    
-    // Log coordinate statistics
-    const withCoords = processedProjects.filter(p => p.lat !== null && p.lng !== null);
-    const withoutCoords = processedProjects.length - withCoords.length;
-    
-    // Log status distribution
-    const statusCounts = processedProjects.reduce((acc, p) => {
-        acc[p.status] = (acc[p.status] || 0) + 1;
-        return acc;
-    }, {});
-    console.log('Project status distribution:', statusCounts);
-    
     return processedProjects;
 }
-
 // Main function to get projects data with IndexedDB integration
 async function getProjectsData(filters = {}) {
-    
     try {
         // Check if IndexedDB service is available
         if (!window.indexedDBService) {
             return await getProjectsDataDirect(filters);
         }
-        
         // Check if we need to sync data from API
         const needsSync = await window.indexedDBService.needsSync('projects');
-        
         if (needsSync) {
             // Check if an API request is already in progress
             if (ongoingAPIRequest) {
                 await ongoingAPIRequest;
             } else {
-                
                 // Start API request and store promise to prevent duplicates
                 ongoingAPIRequest = (async () => {
                     try {
                         // Fetch fresh data from API
                         const response = await fetchAllProjectsData();
-                        
                         if (response.success && response.data.length > 0) {
                             // Process the data
                             const processedProjects = processProjectData(response.data);
-                            
                             // Store in IndexedDB
                             await window.indexedDBService.storeProjectsData(processedProjects);
                         } else {
@@ -484,41 +423,32 @@ async function getProjectsData(filters = {}) {
                         ongoingAPIRequest = null;
                     }
                 })();
-                
                 await ongoingAPIRequest;
             }
         } else {
         }
-        
         // Get filtered data from IndexedDB
-        return await window.indexedDBService.getProjectsFromDB(filters);
-        
+        const results = await window.indexedDBService.getProjectsFromDB(filters);
+        return results;
     } catch (error) {
-        
         // Fallback to direct API call
         return await getProjectsDataDirect(filters);
     }
 }
-
 // Fallback function for direct API calls (when IndexedDB is not available)
 async function getProjectsDataDirect(filters = {}) {
-    
     try {
         // Initialize API
         const apiAvailable = await initializeZohoAPI();
-        
         // Fetch raw data
         const response = await fetchAllProjectsData();
-        
         if (!response.success) {
+            console.warn('Projects API response unsuccessful');
         }
-        
         // Process data
         const processedProjects = processProjectData(response.data);
-        
         // Apply filters
         let filteredProjects = processedProjects;
-        
         if (filters.status) {
             filteredProjects = filteredProjects.filter(p => p.status === filters.status);
         }
@@ -537,8 +467,6 @@ async function getProjectsDataDirect(filters = {}) {
                 p.accountName && p.accountName.toLowerCase().includes(filters.accountName.toLowerCase())
             );
         }
-        
-        
         return {
             data: filteredProjects,
             total: processedProjects.length,
@@ -546,7 +474,6 @@ async function getProjectsDataDirect(filters = {}) {
             success: response.success,
             mock: response.mock
         };
-        
     } catch (error) {
         return {
             data: [],
@@ -557,32 +484,22 @@ async function getProjectsDataDirect(filters = {}) {
         };
     }
 }
-
-
-
-
 // Debug functions for testing
 window.debugZohoAPI = function() {
-    
     if (typeof ZOHO !== 'undefined' && ZOHO.CREATOR) {
     }
-    
 };
-
 window.testAllProjectsAPI = async function() {
-    
     try {
         const result = await getProjectsData();
-        
         if (result.data.length > 0) {
+            console.log(`Projects API test success: ${result.data.length} records retrieved`);
         }
     } catch (error) {
+        console.error('Projects API test error:', error);
     }
-    
 };
-
 window.testPagination = async function() {
-    
     if (!isZohoAPIAvailable()) {
         return;
     }
@@ -590,29 +507,21 @@ window.testPagination = async function() {
     try {
         // Test pagination by directly calling fetchAllProjectsData
         const result = await fetchAllProjectsData();
-        
-        
         return result;
-        
     } catch (error) {
         return null;
     }
-    
 };
-
 window.testAPIConfigs = async function() {
-    
     if (!isZohoAPIAvailable()) {
         return;
     }
-    
     const configs = [
         { app_name: 'pemo', report_name: 'All_Projects' },
         { app_name: 'pemo', report_name: 'All_Projects', max_records: 5 },
         { app_name: 'pemo', report_name: 'All_Projects', criteria: '', max_records: 5 },
         { report_name: 'All_Projects', max_records: 5 }
     ];
-    
     for (let i = 0; i < configs.length; i++) {
         try {
             const response = await ZOHO.CREATOR.DATA.getRecords(configs[i]);
@@ -620,46 +529,34 @@ window.testAPIConfigs = async function() {
         } catch (error) {
         }
     }
-    
 };
-
 // Export main functions for use by other modules
 window.fetchProjectsData = getProjectsData;
 window.getProjectsData = getProjectsData;
-
 // For backward compatibility with existing code
 async function fetchProjectsData(filters = {}) {
     return await getProjectsData(filters);
 }
-
 // ==================== RESOURCES (CUSTOMERS) API ====================
-
 // Make API call to fetch All_Customers data with pagination
 async function fetchAllCustomersData() {
-    
     if (!isZohoAPIAvailable()) {
         return getMockCustomersData();
     }
-    
     let allRecords = [];
     let recordCursor = null;
     let pageNumber = 1;
     let hasMoreRecords = true;
-    
     while (hasMoreRecords) {
         const config = {
             app_name: ZOHO_CONFIG.appName,
             report_name: ZOHO_CONFIG.customersReportName,
             max_records: 1000
         };
-        
         if (recordCursor) {
             config.record_cursor = recordCursor;
         }
-        
-        
         let pageResponse = null;
-        
         // Try DATA.getRecords first
         if (ZOHO.CREATOR.DATA?.getRecords) {
             try {
@@ -667,7 +564,6 @@ async function fetchAllCustomersData() {
             } catch (error) {
             }
         }
-        
         // Try PUBLISH.getRecords as fallback
         if (!pageResponse && ZOHO.CREATOR.PUBLISH?.getRecords) {
             try {
@@ -675,25 +571,18 @@ async function fetchAllCustomersData() {
             } catch (error) {
             }
         }
-        
         if (!pageResponse) {
             break;
         }
-        
         const processedPage = processAPIResponse(pageResponse);
-        
         if (processedPage.data && processedPage.data.length > 0) {
-            
             allRecords = allRecords.concat(processedPage.data);
-            
             recordCursor = extractRecordCursor(pageResponse);
-            
             if (recordCursor) {
                 pageNumber++;
             } else {
                 hasMoreRecords = false;
             }
-            
             if (pageNumber > 50) {
                 hasMoreRecords = false;
             }
@@ -701,8 +590,6 @@ async function fetchAllCustomersData() {
             hasMoreRecords = false;
         }
     }
-    
-    
     return {
         data: allRecords,
         success: allRecords.length > 0,
@@ -711,7 +598,6 @@ async function fetchAllCustomersData() {
         totalRecords: allRecords.length
     };
 }
-
 // Mock data for testing when API is not available
 function getMockCustomersData() {
     return {
@@ -793,50 +679,36 @@ function getMockCustomersData() {
         mock: true
     };
 }
-
-
 // Test function for billing API
 window.testBillingAPI = async function() {
     console.log('Billing API - Starting test...');
     try {
         const result = await fetchAllBillingData();
         console.log('Billing API - Test result:', result);
-        
         if (result.data.length > 0) {
             console.log(`Billing API - Test success: ${result.data.length} records retrieved`);
             console.log('Billing API - Sample record:', result.data[0]);
         } else {
             console.warn('Billing API - Test warning: No records retrieved');
         }
-        
         return result;
     } catch (error) {
         console.error('Billing API - Test error:', error);
         return null;
     }
 };
-
 // Process raw customer data into structured format
 function processCustomerData(rawCustomers) {
-    
     const processedCustomers = rawCustomers.map((customer, index) => {
-        // Minimal debug logging
-        if (index < 1 && !customer.Employe_Name?.first_name) {
-        }
-        
         // Extract coordinates from root level fields
         const rawLat = customer.Latitude;
         const rawLng = customer.Longitude;
-        
         // Convert to numbers, set to null if empty/invalid
         const lat = (rawLat && rawLat !== '') ? Number.parseFloat(rawLat) : null;
         const lng = (rawLng && rawLng !== '') ? Number.parseFloat(rawLng) : null;
-        
-        
         // Build address from either permanent or temporary address
         let address = null;
         let addressString = null;
-        
         if (customer.Permanent_Address && customer.Permanent_Address.zc_display_value) {
             addressString = customer.Permanent_Address.zc_display_value;
             address = customer.Permanent_Address;
@@ -850,7 +722,6 @@ function processCustomerData(rawCustomers) {
             address = customer.Temporary_Address;
             addressString = `${address.address_line_1 || ''}, ${address.district_city || ''}, ${address.state_province || ''} ${address.postal_code || ''}`.replace(/^,\s*|,\s*$/g, '').trim();
         }
-        
         const processedCustomer = {
             id: customer.ID,
             employeeId: customer.Employee_Number || customer.ID,
@@ -870,46 +741,35 @@ function processCustomerData(rawCustomers) {
             lng: lng,
             lastUpdated: Date.now()
         };
-        
-        
         return processedCustomer;
     });
-    
     // Log coordinate statistics
     const withCoords = processedCustomers.filter(c => c.lat !== null && c.lng !== null);
     const withoutCoords = processedCustomers.length - withCoords.length;
-    
     return processedCustomers;
 }
-
 // Main function to get customers data with IndexedDB integration
 async function getCustomersData(filters = {}) {
-    
     try {
         // Check if IndexedDB service is available
         if (!window.indexedDBService) {
             return await getCustomersDataDirect(filters);
         }
-        
         // Check if we need to sync data from API
         const needsSync = await window.indexedDBService.needsSync('resources');
-        
         if (needsSync) {
             // Check if an API request is already in progress
             if (ongoingResourcesAPIRequest) {
                 await ongoingResourcesAPIRequest;
             } else {
-                
                 // Start API request and store promise to prevent duplicates
                 ongoingResourcesAPIRequest = (async () => {
                     try {
                         // Fetch fresh data from API
                         const response = await fetchAllCustomersData();
-                        
                         if (response.success && response.data.length > 0) {
                             // Process the data
                             const processedCustomers = processCustomerData(response.data);
-                            
                             // Store in IndexedDB
                             await window.indexedDBService.storeResourcesData(processedCustomers);
                         } else {
@@ -919,41 +779,31 @@ async function getCustomersData(filters = {}) {
                         ongoingResourcesAPIRequest = null;
                     }
                 })();
-                
                 await ongoingResourcesAPIRequest;
             }
         } else {
         }
-        
         // Get filtered data from IndexedDB
         return await window.indexedDBService.getResourcesFromDB(filters);
-        
     } catch (error) {
-        
         // Fallback to direct API call
         return await getCustomersDataDirect(filters);
     }
 }
-
 // Fallback function for direct API calls (when IndexedDB is not available)
 async function getCustomersDataDirect(filters = {}) {
-    
     try {
         // Initialize API
         const apiAvailable = await initializeZohoAPI();
-        
         // Fetch raw data
         const response = await fetchAllCustomersData();
-        
         if (!response.success) {
+            console.warn('Customers API response unsuccessful');
         }
-        
         // Process data
         const processedCustomers = processCustomerData(response.data);
-        
         // Apply filters
         let filteredCustomers = processedCustomers;
-        
         if (filters.role) {
             filteredCustomers = filteredCustomers.filter(c => c.role === filters.role);
         }
@@ -969,8 +819,6 @@ async function getCustomersDataDirect(filters = {}) {
                 c.fullName.toLowerCase().includes(searchTerm)
             );
         }
-        
-        
         const result = {
             data: filteredCustomers,
             total: processedCustomers.length,
@@ -978,10 +826,7 @@ async function getCustomersDataDirect(filters = {}) {
             success: response.success,
             mock: response.mock
         };
-        
-        
         return result;
-        
     } catch (error) {
         return {
             data: [],
@@ -992,90 +837,71 @@ async function getCustomersDataDirect(filters = {}) {
         };
     }
 }
-
 // Export resources/customers functions
 window.fetchResourcesData = getCustomersData;
 window.getResourcesData = getCustomersData;
 window.fetchCustomersData = getCustomersData;
 window.getCustomersData = getCustomersData;
-
 // Test function for resources/customers API
 window.testCustomersAPI = async function() {
-    
     try {
         const result = await getCustomersData();
-        
         if (result.data.length > 0) {
+            console.log(`Customers API test success: ${result.data.length} records retrieved`);
         }
     } catch (error) {
+        console.error('Customers API test error:', error);
     }
-    
 };
-
 // Test the resources API call with IndexedDB integration
 window.testResourcesAPICall = async function() {
-    
     try {
         const result = await getResourcesData();
-        
         if (result.data && result.data.length > 0) {
-            
             // Check if any resources have coordinates
             const withCoords = result.data.filter(r => r.lat !== null && r.lng !== null && !isNaN(r.lat) && !isNaN(r.lng));
             if (withCoords.length > 0) {
+                console.log(`Resources API test success: ${withCoords.length} resources with coordinates`);
             }
-        } else {
         }
-        
         // Test IndexedDB stats
         if (window.indexedDBService) {
             const stats = await window.indexedDBService.getDBStats();
+            console.log('IndexedDB stats:', stats);
         }
-        
         return result;
     } catch (error) {
         return null;
     }
 };
-
 // Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
-    
     // Auto-test resources API after a short delay
     setTimeout(() => {
         testResourcesAPICall();
     }, 2000);
 });
-
 // ==================== BILLING LOCATIONS API ====================
-
 // Make API call to fetch All_Billing_Locations data with pagination
 async function fetchAllBillingData() {
-    
     if (!isZohoAPIAvailable()) {
         return getMockBillingData();
     }
-    
     let allRecords = [];
     let recordCursor = null;
     let pageNumber = 1;
     let hasMoreRecords = true;
-    
     while (hasMoreRecords) {
         const config = {
             app_name: ZOHO_CONFIG.appName,
             report_name: ZOHO_CONFIG.billingReportName,
             max_records: 1000
         };
-        
         if (recordCursor) {
             config.record_cursor = recordCursor;
         }
-        
         console.log(`Billing API - Fetching page ${pageNumber} with config:`, config);
-        
         let pageResponse = null;
-        
         // Try DATA.getRecords first
         if (ZOHO.CREATOR.DATA?.getRecords) {
             try {
@@ -1083,7 +909,6 @@ async function fetchAllBillingData() {
             } catch (error) {
             }
         }
-        
         // Try PUBLISH.getRecords as fallback
         if (!pageResponse && ZOHO.CREATOR.PUBLISH?.getRecords) {
             try {
@@ -1091,25 +916,18 @@ async function fetchAllBillingData() {
             } catch (error) {
             }
         }
-        
         if (!pageResponse) {
             break;
         }
-        
         const processedPage = processAPIResponse(pageResponse);
-        
         if (processedPage.data && processedPage.data.length > 0) {
-            
             allRecords = allRecords.concat(processedPage.data);
-            
             recordCursor = extractRecordCursor(pageResponse);
-            
             if (recordCursor) {
                 pageNumber++;
             } else {
                 hasMoreRecords = false;
             }
-            
             if (pageNumber > 50) {
                 hasMoreRecords = false;
             }
@@ -1117,8 +935,6 @@ async function fetchAllBillingData() {
             hasMoreRecords = false;
         }
     }
-    
-    
     return {
         data: allRecords,
         success: allRecords.length > 0,
@@ -1127,7 +943,6 @@ async function fetchAllBillingData() {
         totalRecords: allRecords.length
     };
 }
-
 // Mock data for testing when API is not available
 function getMockBillingData() {
     return {
@@ -1170,20 +985,16 @@ function getMockBillingData() {
         mock: true
     };
 }
-
 // Process raw billing data into structured format
 function processBillingData(rawBilling) {
     console.log('Billing API - Processing billing data:', rawBilling.length, 'records');
-    
     const processedBilling = rawBilling.map((billing, index) => {
         // Extract coordinates - prefer root level, fallback to Address object
         const rawLat = billing.Latitude || billing.Address?.latitude;
         const rawLng = billing.Longitude || billing.Address?.longitude;
-        
         // Convert to numbers, set to null if empty/invalid
         const lat = (rawLat && rawLat !== '') ? Number.parseFloat(rawLat) : null;
         const lng = (rawLng && rawLng !== '') ? Number.parseFloat(rawLng) : null;
-        
         // Debug logging for first few records
         if (index < 3) {
             console.log(`Billing API - Record ${index}:`, {
@@ -1193,7 +1004,6 @@ function processBillingData(rawBilling) {
                 status: billing.Status
             });
         }
-        
         return {
             id: billing.ID,
             codeId: billing.Code_ID,
@@ -1205,51 +1015,36 @@ function processBillingData(rawBilling) {
             lastUpdated: Date.now()
         };
     });
-    
     // Log coordinate statistics
     const withCoords = processedBilling.filter(b => b.lat !== null && b.lng !== null);
     const withoutCoords = processedBilling.length - withCoords.length;
-    
     console.log(`Billing API - Coordinate stats: ${withCoords.length} with coords, ${withoutCoords} without coords`);
-    
     return processedBilling;
 }
-
 // Main function to get billing data with IndexedDB integration
 async function getBillingData(filters = {}) {
-    console.log('Billing API - getBillingData called with filters:', filters);
-    
     try {
         // Check if IndexedDB service is available
         if (!window.indexedDBService) {
             return await getBillingDataDirect(filters);
         }
-        
         // Check if we need to sync data from API
         const needsSync = await window.indexedDBService.needsSync('billing');
-        console.log('Billing API - needsSync:', needsSync);
-        
         if (needsSync) {
             // Check if an API request is already in progress
             if (ongoingBillingAPIRequest) {
-                console.log('Billing API - Waiting for ongoing request...');
                 await ongoingBillingAPIRequest;
             } else {
-                console.log('Billing API - Starting new API request...');
-                
                 // Start API request and store promise to prevent duplicates
                 ongoingBillingAPIRequest = (async () => {
                     try {
                         // Fetch fresh data from API
                         const response = await fetchAllBillingData();
-                        
                         if (response.success && response.data.length > 0) {
                             // Process the data
                             const processedBilling = processBillingData(response.data);
-                            
                             // Store in IndexedDB
                             await window.indexedDBService.storeBillingData(processedBilling);
-                            console.log('Billing API - Data stored in IndexedDB');
                         } else {
                             console.warn('Billing API - No data received from API');
                         }
@@ -1258,44 +1053,32 @@ async function getBillingData(filters = {}) {
                         ongoingBillingAPIRequest = null;
                     }
                 })();
-                
                 await ongoingBillingAPIRequest;
             }
         } else {
-            console.log('Billing API - Using cached data');
         }
-        
         // Get filtered data from IndexedDB
         return await window.indexedDBService.getBillingFromDB(filters);
-        
     } catch (error) {
         console.error('Billing API - Error in getBillingData:', error);
         // Fallback to direct API call
         return await getBillingDataDirect(filters);
     }
 }
-
 // Fallback function for direct API calls (when IndexedDB is not available)
 async function getBillingDataDirect(filters = {}) {
-    console.log('Billing API - getBillingDataDirect called with filters:', filters);
-    
     try {
         // Initialize API
         const apiAvailable = await initializeZohoAPI();
-        
         // Fetch raw data
         const response = await fetchAllBillingData();
-        
         if (!response.success) {
             console.warn('Billing API - Direct fetch unsuccessful');
         }
-        
         // Process data
         const processedBilling = processBillingData(response.data);
-        
         // Apply filters
         let filteredBilling = processedBilling;
-        
         if (filters.status) {
             filteredBilling = filteredBilling.filter(b => b.status === filters.status);
         }
@@ -1304,7 +1087,6 @@ async function getBillingDataDirect(filters = {}) {
                 b.codeId && b.codeId.includes(filters.codeId)
             );
         }
-        
         const result = {
             data: filteredBilling,
             total: processedBilling.length,
@@ -1312,11 +1094,7 @@ async function getBillingDataDirect(filters = {}) {
             success: response.success,
             mock: response.mock
         };
-        
-        console.log('Billing API - Direct result:', result);
-        
         return result;
-        
     } catch (error) {
         console.error('Billing API - Error in getBillingDataDirect:', error);
         return {
@@ -1328,22 +1106,18 @@ async function getBillingDataDirect(filters = {}) {
         };
     }
 }
-
-
 // Test function for billing API
 window.testBillingAPI = async function() {
     console.log('Billing API - Starting test...');
     try {
         const result = await fetchAllBillingData();
         console.log('Billing API - Test result:', result);
-        
         if (result.data.length > 0) {
             console.log(`Billing API - Test success: ${result.data.length} records retrieved`);
             console.log('Billing API - Sample record:', result.data[0]);
         } else {
             console.warn('Billing API - Test warning: No records retrieved');
         }
-        
         return result;
     } catch (error) {
         console.error('Billing API - Test error:', error);

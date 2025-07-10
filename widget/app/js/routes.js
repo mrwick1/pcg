@@ -283,7 +283,9 @@ function updateRouteDropdownList(dropdownKey, options) {
         
         // Create display text based on option type
         let displayText;
-        if (option.type === 'project' && option.id) {
+        if (option.type === 'project' && option.projectNumber) {
+            displayText = `${option.projectNumber} - ${option.name}`;
+        } else if (option.type === 'project' && option.id) {
             displayText = `${option.id} - ${option.name}`;
         } else if (option.type && option.name) {
             displayText = `${option.name} (${option.type})`;
@@ -320,7 +322,8 @@ async function populateRouteDropdownOptions() {
             lng: location.lng,
             type: location.type,
             address: location.address,
-            displayText: location.displayText
+            displayText: location.displayText,
+            projectNumber: location.projectNumber
         }));
 
         console.log(`Route planning loaded ${allOptions.length} locations:`, {

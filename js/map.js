@@ -7,7 +7,6 @@ let contextMenu;
 let selectedMarker = null;
 let activeMarkers = [];
 let infoWindows = [];
-
 // Show map error message
 function showMapError(message) {
     const mapContainer = document.getElementById('map-container');
@@ -23,16 +22,13 @@ function showMapError(message) {
         `;
     }
 }
-
 // Initialize Google Maps
 function initializeMap() {
-    
     // Check if Google Maps API is available
     if (typeof google === 'undefined' || !google.maps) {
         showMapError('Google Maps API not loaded. Please check your internet connection.');
         return;
     }
-    
     // Don't clear the entire map container, just ensure the map div exists
     let actualMapDiv = document.getElementById('map');
     if (!actualMapDiv) {
@@ -47,7 +43,6 @@ function initializeMap() {
             return;
         }
     }
-
     try {
         map = new google.maps.Map(document.getElementById("map"), {
             center: { lat: 20.5937, lng: 78.9629 },
@@ -60,16 +55,13 @@ function initializeMap() {
         showMapError('Failed to initialize Google Maps. API key may be invalid.');
         return;
     }
-
     infoWindow = new google.maps.InfoWindow();
     directionsService = new google.maps.DirectionsService();
     directionsRenderer = new google.maps.DirectionsRenderer({
         map: map,
         suppressMarkers: true
     });
-
     contextMenu = document.getElementById('map-context-menu');
-    
     const toggleSatelliteBtn = document.getElementById('toggle-satellite-btn');
     if (toggleSatelliteBtn) {
         toggleSatelliteBtn.addEventListener('click', () => {
@@ -79,18 +71,14 @@ function initializeMap() {
             );
         });
     }
-
     map.addListener('click', (e) => {
         if (contextMenu) {
             contextMenu.style.display = 'none';
         }
     });
-
     map.addListener('contextmenu', (e) => {
         e.preventDefault();
     });
-
-    
     // Load and display data
     setTimeout(() => {
         loadAndDisplayData();
@@ -99,12 +87,10 @@ function initializeMap() {
         }
     }, 100);
 }
-
 // Global callback for Google Maps API
 window.initMap = () => {
     initializeMap();
 };
-
 function getMarkerStyle(location, markerType) {
     // Define marker styles for different types - single color per type
     const markerStyles = {
@@ -124,7 +110,6 @@ function getMarkerStyle(location, markerType) {
             borderColor: '#FFFFFF'
         }
     };
-
     const style = markerStyles[markerType];
     if (!style) {
         return {
@@ -134,7 +119,6 @@ function getMarkerStyle(location, markerType) {
             glyphColor: '#FFFFFF'
         };
     }
-
     return {
         background: style.background,
         borderColor: style.borderColor,
@@ -142,20 +126,15 @@ function getMarkerStyle(location, markerType) {
         glyphColor: '#FFFFFF'
     };
 }
-
 function addMarkerToMap(location, markerType = 'project') {
     if (!map || !google || !google.maps) {
         return;
     }
-
-
     const position = {
         lat: Number.parseFloat(location.lat),
         lng: Number.parseFloat(location.lng)
     };
-
     const markerStyle = getMarkerStyle(location, markerType);
-    
     // Create custom pin element with appropriate style
     const pinElement = new google.maps.marker.PinElement({
         background: markerStyle.background,
@@ -163,7 +142,6 @@ function addMarkerToMap(location, markerType = 'project') {
         glyphColor: markerStyle.glyphColor,
         glyph: markerStyle.glyph
     });
-
     let title = 'Unknown Location';
     if (markerType === 'project') {
         title = location.projectName || 'Unknown Project';
@@ -173,17 +151,14 @@ function addMarkerToMap(location, markerType = 'project') {
     } else if (markerType === 'billing') {
         title = `Billing Location ${location.codeId || 'Unknown'}`;
     }
-
     const marker = new google.maps.marker.AdvancedMarkerElement({
         position,
         map,
         title: title,
         content: pinElement.element
     });
-
     marker.location = location;
     marker.markerType = markerType;
-
     marker.addEventListener('gmp-click', (event) => {
         // Show info window
         let content = '';
@@ -199,9 +174,7 @@ function addMarkerToMap(location, markerType = 'project') {
             const contactName = location.contactName || 'N/A';
             const dateOfLoss = location.dateOfLoss || null;
             const insurer = location.insurer || 'N/A';
-            
             const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-            
             content = `
                 <div class="project-info-window">
                     <div class="info-header status-${statusClass}">
@@ -213,43 +186,35 @@ function addMarkerToMap(location, markerType = 'project') {
                             <span class="project-status status-${statusClass}">${status}</span>
                         </div>
                     </div>
-                    
                     <div class="info-content">
                         <div class="info-row">
                             <span class="info-label">PCC Number:</span>
                             <span class="info-value">${projectNumber}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Project Type:</span>
                             <span class="info-value">${projectType}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Account:</span>
                             <span class="info-value">${accountName}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Claim Number:</span>
                             <span class="info-value">${claimNumber}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Contact:</span>
                             <span class="info-value">${contactName}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Insurer:</span>
                             <span class="info-value">${insurer}</span>
                         </div>
-                        
                         <div class="info-row address-row">
                             <span class="info-label">Address:</span>
                             <span class="info-value">${projectAddress}</span>
                         </div>
-                        
                         ${dateOfLoss ? `
                         <div class="info-row">
                             <span class="info-label">Date of Loss:</span>
@@ -257,7 +222,6 @@ function addMarkerToMap(location, markerType = 'project') {
                         </div>
                         ` : ''}
                     </div>
-                    
                     <div class="info-actions">
                         <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, '${projectName.replace(/'/g, "\\'")}')">
                             <span class="btn-icon">📍</span>
@@ -281,9 +245,7 @@ function addMarkerToMap(location, markerType = 'project') {
             const personalEmail = location.personalEmail || 'N/A';
             const phoneNumber = location.phoneNumber || 'N/A';
             const paymentType = location.paymentType || 'N/A';
-            
             const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-            
             content = `
                 <div class="project-info-window">
                     <div class="info-header status-${statusClass}">
@@ -295,50 +257,42 @@ function addMarkerToMap(location, markerType = 'project') {
                             <span class="project-status status-${statusClass}">${status}</span>
                         </div>
                     </div>
-                    
                     <div class="info-content">
                         <div class="info-row">
                             <span class="info-label">Employee ID:</span>
                             <span class="info-value">${employeeId}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Role:</span>
                             <span class="info-value">${role}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Employee Type:</span>
                             <span class="info-value">${employeeType}</span>
                         </div>
-                        
                         ${personalEmail !== 'N/A' ? `
                         <div class="info-row">
                             <span class="info-label">Email:</span>
                             <span class="info-value">${personalEmail}</span>
                         </div>
                         ` : ''}
-                        
                         ${phoneNumber !== 'N/A' ? `
                         <div class="info-row">
                             <span class="info-label">Phone:</span>
                             <span class="info-value">${phoneNumber}</span>
                         </div>
                         ` : ''}
-                        
                         ${paymentType !== 'N/A' ? `
                         <div class="info-row">
                             <span class="info-label">Payment Type:</span>
                             <span class="info-value">${paymentType}</span>
                         </div>
                         ` : ''}
-                        
                         <div class="info-row address-row">
                             <span class="info-label">Address:</span>
                             <span class="info-value">${resourceAddress}</span>
                         </div>
                     </div>
-                    
                     <div class="info-actions">
                         <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, '${fullName.replace(/'/g, "\\'")}')">
                             <span class="btn-icon">📍</span>
@@ -353,7 +307,6 @@ function addMarkerToMap(location, markerType = 'project') {
             const population = location.population || 'N/A';
             const address = location.address || 'Address not available';
             const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-            
             content = `
                 <div class="project-info-window">
                     <div class="info-header">
@@ -365,29 +318,24 @@ function addMarkerToMap(location, markerType = 'project') {
                             <span class="project-status status-${statusClass}">${status === 'false' ? 'Inactive' : status}</span>
                         </div>
                     </div>
-                    
                     <div class="info-content">
                         <div class="info-row">
                             <span class="info-label">Code ID:</span>
                             <span class="info-value">${codeId}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Population:</span>
                             <span class="info-value">${Number(population).toLocaleString()}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Status:</span>
                             <span class="info-value">${status === 'false' ? 'Inactive' : 'Active'}</span>
                         </div>
-                        
                         <div class="info-row address-row">
                             <span class="info-label">Address:</span>
                             <span class="info-value">${address}</span>
                         </div>
                     </div>
-                    
                     <div class="info-actions">
                         <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, 'Billing Location ${codeId.replace(/'/g, "\\'")}')">
                             <span class="btn-icon">📍</span>
@@ -397,34 +345,26 @@ function addMarkerToMap(location, markerType = 'project') {
                 </div>
             `;
         }
-        
         if (content) {
             infoWindow.setContent(content);
             infoWindow.open(map, marker);
         }
     });
-
     marker.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
         selectedMarker = marker;
-        
         if (contextMenu) {
             // Simple approach: use the mouse event coordinates
             const x = e.domEvent ? e.domEvent.clientX : window.event.clientX;
             const y = e.domEvent ? e.domEvent.clientY : window.event.clientY;
-            
-            
             // Ensure the context menu stays within viewport
             const menuWidth = 120;
             const menuHeight = 40;
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
-            
             let finalX = x + 10; // Small offset to the right
             let finalY = y - 10; // Small offset above
-            
             // Adjust if menu would go off-screen
             if (finalX + menuWidth > viewportWidth) {
                 finalX = x - menuWidth - 10; // Place to the left
@@ -435,12 +375,9 @@ function addMarkerToMap(location, markerType = 'project') {
             if (finalY < 0) {
                 finalY = y + 30; // Place below
             }
-            
             contextMenu.style.display = 'block';
             contextMenu.style.left = `${finalX}px`;
             contextMenu.style.top = `${finalY}px`;
-            
-
             setTimeout(() => {
                 const closeContextMenu = (event) => {
                     if (!contextMenu.contains(event.target)) {
@@ -452,37 +389,29 @@ function addMarkerToMap(location, markerType = 'project') {
             }, 0);
         }
     });
-
     activeMarkers.push(marker);
-
     return marker;
 }
-
 function clearAllMarkers() {
     for (const marker of activeMarkers) {
         marker.map = null;
     }
     activeMarkers = [];
 }
-
 // These functions are no longer needed since we have separate APIs
-
 async function loadAndDisplayData(filters = {}, changedFilter = null) {
     if (!map && (!google || !google.maps)) {
         document.getElementById('map-container').innerHTML =
             `<p>Google Maps API not loaded. Please check your API key and internet connection.</p>`;
         return;
     }
-
     clearAllMarkers();
     const mapContainer = document.getElementById('map-container');
-    
     if (!document.getElementById('map') && mapContainer) {
         // Only create the map div if it doesn't exist, don't clear the container
         const actualMapDiv = document.createElement('div');
         actualMapDiv.id = 'map';
         mapContainer.appendChild(actualMapDiv);
-        
         if (google?.maps && !map) {
              map = new google.maps.Map(document.getElementById("map"), {
                 center: { lat: 20.5937, lng: 78.9629 },
@@ -491,44 +420,58 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
              });
         }
     }
-
     try {
-        
         // Fetch from separate APIs independently
-        const projectLocations = await getProjectsData({
+        const projectFilters = {
             projectNumber: filters.pccNumber,
             reportType: filters.projectType,
             accountName: filters.accountName,
             status: filters.project_status
-        });
+        };
+        console.log('Project filters being applied:', projectFilters);
+        const projectResponse = await getProjectsData(projectFilters);
+        console.log('Project response:', projectResponse);
+        const projectLocations = projectResponse.data || [];
         
+        // Count all projects by status (including those without coordinates)
+        const allProjectsByStatus = projectLocations.reduce((acc, p) => {
+            acc[p.status] = (acc[p.status] || 0) + 1;
+            return acc;
+        }, {});
         const resourcesResponse = await getResourcesData({
             role: filters.userRole,
             employeeType: filters.employeeType,
             status: filters.resourceStatus
         });
-        
-        
         const billingResponse = await getBillingData({
             status: filters.billingStatus,
             paymentType: filters.paymentType
         });
         const billingLocations = billingResponse.data || [];
-
         // Add project markers (P) - only for projects with valid coordinates
+        let projectsWithCoords = 0;
+        let projectsWithoutCoords = 0;
+        
+        // Count projects by status that have valid coordinates (displayed on map)
+        const projectsOnMapByStatus = {};
+        
         for (const location of projectLocations) {
             if (hasValidCoordinates(location)) {
                 addMarkerToMap(location, 'project');
+                projectsWithCoords++;
+                
+                // Count projects with coordinates by status
+                const status = location.status || 'Unknown';
+                projectsOnMapByStatus[status] = (projectsOnMapByStatus[status] || 0) + 1;
+            } else {
+                projectsWithoutCoords++;
             }
         }
         
         // Add resource location markers (R) - only for resources with valid coordinates
         const resourceLocations = resourcesResponse.data || [];
-        
-        
         let addedCount = 0;
         let skippedCount = 0;
-        
         for (const location of resourceLocations) {
             if (hasValidCoordinates(location)) {
                 addMarkerToMap(location, 'resource');
@@ -537,12 +480,9 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
                 skippedCount++;
             }
         }
-        
-        
         // Add billing location markers (B) - only for billing with valid coordinates
         let billingAddedCount = 0;
         let billingSkippedCount = 0;
-        
         for (const location of billingLocations) {
             if (hasValidCoordinates(location)) {
                 addMarkerToMap(location, 'billing');
@@ -551,9 +491,6 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
                 billingSkippedCount++;
             }
         }
-        
-        console.log(`Billing markers: ${billingAddedCount} added, ${billingSkippedCount} skipped (no coordinates)`);
-            
         if (activeMarkers.length > 0 && google && google.maps) {
             // Handle specific zoom cases for project and resource selection
             if (changedFilter === 'projectSearch' && filters.pccNumber) {
@@ -608,10 +545,7 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
                 if (activeMarkers.length === 1) map.setZoom(10);
             }
         }
-        
-        
         if (projectLocations.length === 0 && resourceLocations.length === 0 && billingLocations.length === 0) {
-            
             // Show a message when no data is found
             const mapContainer = document.getElementById('map-container');
             if (mapContainer) {
@@ -624,13 +558,10 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
                         <div style="font-size: 0.9rem;">Try adjusting your filters</div>
                     </div>
                 `;
-                
                 // Remove existing no-data messages
                 const existingMessages = mapContainer.querySelectorAll('.no-data-message');
                 existingMessages.forEach(el => el.remove());
-                
                 mapContainer.appendChild(noDataMessage);
-                
                 // Auto-remove after 5 seconds
                 setTimeout(() => {
                     if (noDataMessage.parentElement) {
@@ -640,15 +571,12 @@ async function loadAndDisplayData(filters = {}, changedFilter = null) {
             }
         }
     } catch (error) {
-        
     }
 }
-
 function handleViewDetails() {
     if (selectedMarker) {
         const location = selectedMarker.location;
         const markerType = selectedMarker.markerType;
-        
         let content = '';
         if (markerType === 'project') {
             const projectName = location.projectName || 'Unknown Project';
@@ -661,9 +589,7 @@ function handleViewDetails() {
             const contactName = location.contactName || 'N/A';
             const dateOfLoss = location.dateOfLoss || null;
             const insurer = location.insurer || 'N/A';
-            
             const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-            
             content = `
                 <div class="project-info-window">
                     <div class="info-header status-${statusClass}">
@@ -675,43 +601,35 @@ function handleViewDetails() {
                             <span class="project-status status-${statusClass}">${status}</span>
                         </div>
                     </div>
-                    
                     <div class="info-content">
                         <div class="info-row">
                             <span class="info-label">PCC Number:</span>
                             <span class="info-value">${projectNumber}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Project Type:</span>
                             <span class="info-value">${projectType}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Account:</span>
                             <span class="info-value">${accountName}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Claim Number:</span>
                             <span class="info-value">${claimNumber}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Contact:</span>
                             <span class="info-value">${contactName}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Insurer:</span>
                             <span class="info-value">${insurer}</span>
                         </div>
-                        
                         <div class="info-row address-row">
                             <span class="info-label">Address:</span>
                             <span class="info-value">${projectAddress}</span>
                         </div>
-                        
                         ${dateOfLoss ? `
                         <div class="info-row">
                             <span class="info-label">Date of Loss:</span>
@@ -719,7 +637,6 @@ function handleViewDetails() {
                         </div>
                         ` : ''}
                     </div>
-                    
                     <div class="info-actions">
                         <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, '${projectName.replace(/'/g, "\\'")}')">
                             <span class="btn-icon">📍</span>
@@ -743,9 +660,7 @@ function handleViewDetails() {
             const personalEmail = location.personalEmail || 'N/A';
             const phoneNumber = location.phoneNumber || 'N/A';
             const paymentType = location.paymentType || 'N/A';
-            
             const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-            
             content = `
                 <div class="project-info-window">
                     <div class="info-header status-${statusClass}">
@@ -757,50 +672,42 @@ function handleViewDetails() {
                             <span class="project-status status-${statusClass}">${status}</span>
                         </div>
                     </div>
-                    
                     <div class="info-content">
                         <div class="info-row">
                             <span class="info-label">Employee ID:</span>
                             <span class="info-value">${employeeId}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Role:</span>
                             <span class="info-value">${role}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Employee Type:</span>
                             <span class="info-value">${employeeType}</span>
                         </div>
-                        
                         ${personalEmail !== 'N/A' ? `
                         <div class="info-row">
                             <span class="info-label">Email:</span>
                             <span class="info-value">${personalEmail}</span>
                         </div>
                         ` : ''}
-                        
                         ${phoneNumber !== 'N/A' ? `
                         <div class="info-row">
                             <span class="info-label">Phone:</span>
                             <span class="info-value">${phoneNumber}</span>
                         </div>
                         ` : ''}
-                        
                         ${paymentType !== 'N/A' ? `
                         <div class="info-row">
                             <span class="info-label">Payment Type:</span>
                             <span class="info-value">${paymentType}</span>
                         </div>
                         ` : ''}
-                        
                         <div class="info-row address-row">
                             <span class="info-label">Address:</span>
                             <span class="info-value">${resourceAddress}</span>
                         </div>
                     </div>
-                    
                     <div class="info-actions">
                         <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, '${fullName.replace(/'/g, "\\'")}')">
                             <span class="btn-icon">📍</span>
@@ -815,7 +722,6 @@ function handleViewDetails() {
             const population = location.population || 'N/A';
             const address = location.address || 'Address not available';
             const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-            
             content = `
                 <div class="project-info-window">
                     <div class="info-header">
@@ -827,29 +733,24 @@ function handleViewDetails() {
                             <span class="project-status status-${statusClass}">${status === 'false' ? 'Inactive' : status}</span>
                         </div>
                     </div>
-                    
                     <div class="info-content">
                         <div class="info-row">
                             <span class="info-label">Code ID:</span>
                             <span class="info-value">${codeId}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Population:</span>
                             <span class="info-value">${Number(population).toLocaleString()}</span>
                         </div>
-                        
                         <div class="info-row">
                             <span class="info-label">Status:</span>
                             <span class="info-value">${status === 'false' ? 'Inactive' : 'Active'}</span>
                         </div>
-                        
                         <div class="info-row address-row">
                             <span class="info-label">Address:</span>
                             <span class="info-value">${address}</span>
                         </div>
                     </div>
-                    
                     <div class="info-actions">
                         <button class="action-btn primary" onclick="openDirections(${location.lat}, ${location.lng}, 'Billing Location ${codeId.replace(/'/g, "\\'")}')">
                             <span class="btn-icon">📍</span>
@@ -859,22 +760,18 @@ function handleViewDetails() {
                 </div>
             `;
         }
-        
         infoWindow.setContent(content);
         infoWindow.open(map, selectedMarker);
     }
     contextMenu.style.display = 'none';
 }
-
 function showProjectSummary(projectId) {
     alert(`Project summary for ID ${projectId} would open in a new tab`);
 }
-
 function openDirections(lat, lng, name) {
     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodeURIComponent(name)}`;
     window.open(googleMapsUrl, '_blank');
 }
-
 // Add styles for info windows
 const infoWindowStyles = `
     .info-window {
@@ -896,87 +793,68 @@ const infoWindowStyles = `
         color: var(--secondary-blue);
     }
 `;
-
 const styleElement = document.createElement('style');
 styleElement.textContent = infoWindowStyles;
 document.head.appendChild(styleElement);
-
 // Info window action functions
 window.viewProjectSummary = function(projectId) {
-    
     const projectData = activeMarkers.find(marker => 
         marker.markerType === 'project' && 
         (marker.location.id === projectId || marker.location.projectNumber === projectId)
     );
-    
     if (projectData) {
         const project = projectData.location;
-        
         // Get status class for styling
         const statusClass = project.status ? project.status.toLowerCase().replace(/\s+/g, '-') : 'unknown';
-        
         const summaryHTML = `
             <div class="project-summary-section">
                 <h4>Project Overview</h4>
                 <div class="project-detail-grid">
                     <span class="project-detail-label">Project Name:</span>
                     <span class="project-detail-value">${project.projectName || 'N/A'}</span>
-                    
                     <span class="project-detail-label">PCC Number:</span>
                     <span class="project-detail-value">${project.projectNumber || 'N/A'}</span>
-                    
                     <span class="project-detail-label">Status:</span>
                     <span class="project-detail-value">
                         <span class="project-status-badge status-${statusClass}">${project.status || 'Unknown'}</span>
                     </span>
-                    
                     <span class="project-detail-label">Project Type:</span>
                     <span class="project-detail-value">${project.projectType || 'N/A'}</span>
                 </div>
             </div>
-            
             <div class="project-summary-section">
                 <h4>Client Information</h4>
                 <div class="project-detail-grid">
                     <span class="project-detail-label">Account:</span>
                     <span class="project-detail-value">${project.accountName || 'N/A'}</span>
-                    
                     <span class="project-detail-label">Contact:</span>
                     <span class="project-detail-value">${project.contactName || 'N/A'}</span>
-                    
                     <span class="project-detail-label">Insurer:</span>
                     <span class="project-detail-value">${project.insurer || 'N/A'}</span>
-                    
                     <span class="project-detail-label">Claim Number:</span>
                     <span class="project-detail-value">${project.claimNumber || 'N/A'}</span>
                 </div>
             </div>
-            
             <div class="project-summary-section">
                 <h4>Location & Timeline</h4>
                 <div class="project-detail-grid">
                     <span class="project-detail-label">Address:</span>
                     <span class="project-detail-value">${project.address || 'N/A'}</span>
-                    
                     ${project.dateOfLoss ? `
                     <span class="project-detail-label">Date of Loss:</span>
                     <span class="project-detail-value">${project.dateOfLoss}</span>
                     ` : ''}
-                    
                     <span class="project-detail-label">Coordinates:</span>
                     <span class="project-detail-value">${project.lat && project.lng ? `${project.lat.toFixed(4)}, ${project.lng.toFixed(4)}` : 'N/A'}</span>
                 </div>
             </div>
         `;
-        
         // Populate and show modal
         const modalBody = document.getElementById('project-summary-body');
         const modal = document.getElementById('project-summary-modal');
-        
         if (modalBody && modal) {
             modalBody.innerHTML = summaryHTML;
             modal.style.display = 'block';
-            
             // Setup close functionality
             const closeBtn = document.getElementById('project-summary-close');
             if (closeBtn) {
@@ -984,7 +862,6 @@ window.viewProjectSummary = function(projectId) {
                     modal.style.display = 'none';
                 };
             }
-            
             // Close when clicking outside modal
             modal.onclick = function(event) {
                 if (event.target === modal) {
@@ -996,12 +873,10 @@ window.viewProjectSummary = function(projectId) {
         alert('Project details not found.');
     }
 };
-
 window.openDirections = function(lat, lng, locationName) {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
     window.open(url, '_blank');
 };
-
 window.viewResourceSummary = function(resourceId) {
     alert(`Resource profile for ID ${resourceId} would open in a new tab`);
 };
