@@ -45,8 +45,8 @@ function initializeMap() {
     }
     try {
         map = new google.maps.Map(document.getElementById("map"), {
-            center: { lat: 20.5937, lng: 78.9629 },
-            zoom: 5,
+            center: { lat: 39.833, lng: -98.583 },
+            zoom: 4,
             mapTypeControl: false,
             streetViewControl: false,
             mapId: 'fb4518226e59c4892eee2d21'
@@ -919,6 +919,12 @@ window.viewProjectSummary = function(projectId) {
                     <span class="project-detail-value">${project.lat && project.lng ? `${project.lat.toFixed(4)}, ${project.lng.toFixed(4)}` : 'N/A'}</span>
                 </div>
             </div>
+            <div class="project-summary-actions">
+                <button class="action-btn primary" onclick="openProjectRecord('${project.id}')">
+                    <span class="btn-icon">🔗</span>
+                    Open Project Record
+                </button>
+            </div>
         `;
         // Populate and show modal
         const modalBody = document.getElementById('project-summary-body');
@@ -950,4 +956,14 @@ window.openDirections = function(lat, lng, locationName) {
 };
 window.viewResourceSummary = function(resourceId) {
     alert(`Resource profile for ID ${resourceId} would open in a new tab`);
+};
+
+window.openProjectRecord = function(projectId) {
+    if (!projectId || projectId === 'undefined' || projectId === '') {
+        alert('Project ID not available for this record');
+        return;
+    }
+    
+    const url = `https://creatorapp.zoho.com/premaconsultinggroupllc/pemo/#Page:Project_Summary_Page?project_num=${projectId}`;
+    window.open(url, '_blank');
 };

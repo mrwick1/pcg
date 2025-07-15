@@ -8,6 +8,17 @@ let routeDropdowns = {};
 let waypointCount = 0;
 let activeWaypoints = []; // Track active waypoint indices
 
+// Unit conversion utilities
+function convertMetersToMiles(meters) {
+    return (meters * 0.000621371).toFixed(2);
+}
+
+function formatDurationToHoursMinutes(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.round((seconds % 3600) / 60);
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
 // Local copy of coordinate validation utility (in case data.js hasn't loaded yet)
 function hasValidCoordinates(location) {
     if (!location) return false;
@@ -535,12 +546,15 @@ function displayRouteInformation(response) {
 
     const routeDetails = `
         <h4>Route Summary:</h4>
-        <p><strong>Total Distance:</strong> ${(totalDistance / 1000).toFixed(2)} km</p>
-        <p><strong>Estimated Time:</strong> ${Math.round(totalDuration / 60)} minutes</p>
+        <p><strong>Total Distance:</strong> ${convertMetersToMiles(totalDistance)} miles</p>
+        <p><strong>Estimated Time:</strong> ${formatDurationToHoursMinutes(totalDuration)}</p>
         <ol>
-            ${routePoints.map((point, index) => 
-                `<li>${point.name} (${point.type})</li>`
-            ).join('')}
+            ${routePoints.map((point, index) => {
+                const displayName = point.type === 'project' && point.projectNumber 
+                    ? `${point.projectNumber} - ${point.name}`
+                    : point.name;
+                return `<li>${displayName} (${point.type})</li>`;
+            }).join('')}
         </ol>
     `;
 
